@@ -65,21 +65,18 @@ class _ProvisionPageState extends State<ProvisionPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.card,
-        title: const Text(
-            'Berhasil!',
+        title: const Text('Berhasil!',
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.primary)
-        ),
+            style: TextStyle(color: AppColors.primary)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.check_circle_outline, color: AppColors.primary, size: 60),
+            const Icon(Icons.check_circle_outline,
+                color: AppColors.primary, size: 60),
             const SizedBox(height: 16),
-            Text(
-                'Perangkat berhasil ditambahkan.',
+            const Text('Perangkat berhasil ditambahkan.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.textPrimary)
-            ),
+                style: TextStyle(color: AppColors.textPrimary)),
           ],
         ),
         actionsAlignment: MainAxisAlignment.center,
@@ -89,14 +86,11 @@ class _ProvisionPageState extends State<ProvisionPage> {
               Navigator.of(ctx).pop();
               Navigator.of(context).pop();
             },
-            child: const Text(
-              'OK',
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.bold,
-                fontSize: 18.0,
-              ),
-            ),
+            child: const Text('OK',
+                style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18.0)),
           ),
         ],
       ),
@@ -108,35 +102,29 @@ class _ProvisionPageState extends State<ProvisionPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.card,
-        title: const Text(
-            'Gagal',
+        title: const Text('Gagal',
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.statusDanger)
-        ),
+            style: TextStyle(color: AppColors.statusDanger)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, color: AppColors.statusDanger, size: 60),
+            const Icon(Icons.error_outline,
+                color: AppColors.statusDanger, size: 60),
             const SizedBox(height: 16),
-            Text(
-                message,
+            Text(message,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.textPrimary)
-            ),
+                style: const TextStyle(color: AppColors.textPrimary)),
           ],
         ),
         actionsAlignment: MainAxisAlignment.center,
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text(
-              'Coba Lagi',
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.bold,
-                fontSize: 18.0,
-              ),
-            ),
+            child: const Text('Coba Lagi',
+                style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18.0)),
           ),
         ],
       ),
@@ -146,22 +134,28 @@ class _ProvisionPageState extends State<ProvisionPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
           'Tambah Perangkat Baru',
           style: TextStyle(
-            color: AppColors.primary,
+            color: Colors.black,
             fontWeight: FontWeight.bold,
           ),
         ),
-        iconTheme: const IconThemeData(
-          color: AppColors.primary,
-        ),
-        backgroundColor: AppColors.card,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.black),
       ),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          padding: EdgeInsets.fromLTRB(
+              24.0,
+              MediaQuery.of(context).padding.top + kToolbarHeight + 20,
+              24.0,
+              24.0),
           child: Form(
             key: _formKey,
             child: Column(
@@ -193,7 +187,6 @@ class _ProvisionPageState extends State<ProvisionPage> {
                   ),
                 ),
                 const SizedBox(height: 40),
-
                 TextFormField(
                   controller: _kodeUnikController,
                   textCapitalization: TextCapitalization.characters,
@@ -203,35 +196,46 @@ class _ProvisionPageState extends State<ProvisionPage> {
                     labelStyle: const TextStyle(color: AppColors.textSecondary),
                     hintText: 'Cth: SENSOR-A1B2C3',
                     hintStyle: const TextStyle(color: AppColors.textSecondary),
+                    filled: true,
+                    fillColor: AppColors.card,
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: AppColors.textSecondary.withOpacity(0.5)),
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                          color: AppColors.textSecondary.withOpacity(0.5)),
                     ),
-                    focusedBorder: const OutlineInputBorder(
-                      borderSide: BorderSide(color: AppColors.primary, width: 2),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          const BorderSide(color: AppColors.primary, width: 2),
                     ),
-                    prefixIcon: const Icon(Icons.qr_code_scanner, color: AppColors.textSecondary),
+                    prefixIcon: const Icon(Icons.qr_code_scanner,
+                        color: AppColors.textSecondary),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'Kode tidak boleh kosong';
                     }
-                    if (!value.startsWith('SENSOR-') && !value.startsWith('PAKAN-')) {
+                    if (!value.startsWith('SENSOR-') &&
+                        !value.startsWith('PAKAN-')) {
                       return 'Format salah (Harus SENSOR- atau PAKAN-)';
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 40),
-
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   onPressed: _isLoading ? null : _tambahPerangkat,
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Tambahkan Perangkat', style: TextStyle(color: AppColors.card, fontSize: 18)),
+                      : const Text('Tambahkan Perangkat',
+                          style: TextStyle(color: Colors.white, fontSize: 18)),
                 ),
               ],
             ),
