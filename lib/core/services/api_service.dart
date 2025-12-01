@@ -1,7 +1,6 @@
-import 'dart:convert'; // Untuk jsonEncode dan jsonDecode
-import 'package:http/http.dart' as http; // Package untuk panggilan API
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
-// Import file konstanta URL yang sudah kita buat
 import '../constants/api_endpoints.dart';
 
 class ApiService {

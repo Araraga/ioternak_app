@@ -1,5 +1,5 @@
 import 'package:bloc/bloc.dart';
-import 'schedule_state.dart'; // Import state yang sudah kita buat
+import 'schedule_state.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/services/storage_service.dart';
 
@@ -14,7 +14,6 @@ class ScheduleCubit extends Cubit<ScheduleState> {
         _storageService = storageService,
         super(ScheduleInitial());
 
-  /// Fungsi untuk mengambil data jadwal yang ada dari server
   Future<void> fetchSchedule() async {
     try {
       emit(ScheduleLoading());
@@ -25,7 +24,6 @@ class ScheduleCubit extends Cubit<ScheduleState> {
         return;
       }
 
-      // Panggil API untuk GET data
       final data = await _apiService.getSchedule(pakanId);
       final List<String> schedules = (data['times'] as List<dynamic>)
           .map((time) => time.toString())
@@ -37,7 +35,6 @@ class ScheduleCubit extends Cubit<ScheduleState> {
     }
   }
 
-  /// Fungsi untuk mengirim jadwal baru ke server
   Future<void> updateSchedule(List<String> newSchedules) async {
     final currentState = state;
     List<String> currentData = [];
@@ -56,15 +53,12 @@ class ScheduleCubit extends Cubit<ScheduleState> {
         return;
       }
 
-      // Siapkan data untuk dikirim sebagai JSON (Map)
       final Map<String, dynamic> scheduleData = {
         'times': newSchedules,
       };
 
-      // Panggil API untuk POST data baru
       await _apiService.updateSchedule(pakanId, scheduleData);
 
-      // Jika berhasil, emit state Success
       emit(ScheduleUpdateSuccess(newSchedules));
     } catch (e) {
       emit(ScheduleError(e.toString()));
