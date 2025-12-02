@@ -1,5 +1,5 @@
 class ApiEndpoints {
-  static const String baseUrl = "maggenzimiot.onrender.com";
+  static const String baseUrl = "smartkandangiot.onrender.com";
 
   static String getSensorData(String deviceId) {
     return "https://$baseUrl/api/sensor-data?id=$deviceId";
@@ -15,5 +15,17 @@ class ApiEndpoints {
 
   static String checkDevice(String deviceId) {
     return "https://$baseUrl/api/check-device?id=$deviceId";
+  }
+
+  static String get registerUser {
+    return "https://$baseUrl/api/register";
+  }
+
+  static String get claimDevice {
+    return "https://$baseUrl/api/claim-device";
+  }
+
+  static String get releaseDevice {
+    return "https://$baseUrl/api/release-device";
   }
 }

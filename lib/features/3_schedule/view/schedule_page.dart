@@ -1,130 +1,232 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart'; // Untuk Spinner Waktu
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/services/storage_service.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/services/storage_service.dart';
+// Import Widget Reusable
+import '../../2_dashboard/widgets/sensor_error.dart';
+import '../cubit/schedule_cubit.dart';
+import '../cubit/schedule_state.dart';
 
-class ProvisionPage extends StatefulWidget {
-  const ProvisionPage({super.key});
+class SchedulePage extends StatelessWidget {
+  const SchedulePage({super.key});
 
   @override
-  State<ProvisionPage> createState() => _ProvisionPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => ScheduleCubit(
+        apiService: context.read<ApiService>(),
+        storageService: context.read<StorageService>(),
+      )..fetchSchedule(),
+      child: const ScheduleView(),
+    );
+  }
 }
 
-class _ProvisionPageState extends State<ProvisionPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _kodeUnikController = TextEditingController();
-  bool _isLoading = false;
+class ScheduleView extends StatefulWidget {
+  const ScheduleView({super.key});
 
   @override
-  void dispose() {
-    _kodeUnikController.dispose();
-    super.dispose();
-  }
+  State<ScheduleView> createState() => _ScheduleViewState();
+}
 
-  Future<void> _tambahPerangkat() async {
-    if (!_formKey.currentState!.validate()) return;
+class _ScheduleViewState extends State<ScheduleView> {
+  List<String> _currentSchedules = [];
+  bool _isDataLoaded = false;
 
-    setState(() => _isLoading = true);
+  // --- FUNGSI TAMBAH JADWAL (POPUP SPINNER) ---
+  Future<void> _addSchedule() async {
+    DateTime tempPickedTime = DateTime.now();
 
-    final String kode = _kodeUnikController.text.trim().toUpperCase();
-    String? errorMessage;
-    bool isSuccess = false;
-
-    try {
-      final apiService = context.read<ApiService>();
-      final storageService = context.read<StorageService>();
-      final bool deviceExists = await apiService.checkDeviceExists(kode);
-
-      if (deviceExists) {
-        if (kode.startsWith('SENSOR-')) {
-          await storageService.saveSensorId(kode);
-        } else if (kode.startsWith('PAKAN-')) {
-          await storageService.savePakanId(kode);
-        }
-        isSuccess = true;
-      } else {
-        errorMessage = 'Perangkat dengan ID "$kode" tidak ditemukan di server.';
-      }
-    } catch (e) {
-      errorMessage = 'Gagal terhubung ke server: $e';
-    }
-
-    if (!mounted) return;
-
-    if (isSuccess) {
-      _showSuccessDialog();
-    } else {
-      _showErrorDialog(errorMessage ?? 'Terjadi kesalahan tidak diketahui.');
-      setState(() => _isLoading = false);
-    }
-  }
-
-  void _showSuccessDialog() {
-    showDialog(
+    await showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.card,
-        title: const Text('Berhasil!',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.primary)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.check_circle_outline,
-                color: AppColors.primary, size: 60),
-            const SizedBox(height: 16),
-            const Text('Perangkat berhasil ditambahkan.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.textPrimary)),
-          ],
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              Navigator.of(context).pop();
-            },
-            child: const Text('OK',
-                style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18.0)),
+      builder: (BuildContext builderContext) {
+        return Dialog(
+          backgroundColor: AppColors.card,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
-        ],
-      ),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    "Pilih Waktu",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Spinner Waktu
+                  SizedBox(
+                    height: 180,
+                    child: CupertinoTheme(
+                      data: const CupertinoThemeData(
+                        brightness: Brightness
+                            .dark, // Agar teks terlihat di bg putih/gelap
+                        textTheme: CupertinoTextThemeData(
+                          dateTimePickerTextStyle: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 24,
+                          ),
+                        ),
+                      ),
+                      child: CupertinoDatePicker(
+                        mode: CupertinoDatePickerMode.time,
+                        use24hFormat: true,
+                        initialDateTime: DateTime.now(),
+                        onDateTimeChanged: (DateTime newTime) {
+                          tempPickedTime = newTime;
+                        },
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Tombol Aksi
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.red),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          child: const Text(
+                            "Batal",
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            final String formattedTime =
+                                '${tempPickedTime.hour.toString().padLeft(2, '0')}:${tempPickedTime.minute.toString().padLeft(2, '0')}';
+
+                            setState(() {
+                              if (!_currentSchedules.contains(formattedTime)) {
+                                _currentSchedules.add(formattedTime);
+                                _currentSchedules.sort();
+                              }
+                            });
+
+                            // Auto-save ke Server
+                            context.read<ScheduleCubit>().updateSchedule(
+                              _currentSchedules,
+                            );
+
+                            Navigator.pop(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          child: const Text(
+                            "Simpan",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
-  void _showErrorDialog(String message) {
+  // --- FUNGSI HAPUS DEVICE (API Release + Clear Local) ---
+  void _deleteDevice(BuildContext context) async {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.card,
-        title: const Text('Gagal',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.statusDanger)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline,
-                color: AppColors.statusDanger, size: 60),
-            const SizedBox(height: 16),
-            Text(message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textPrimary)),
-          ],
+        title: const Text("Hapus Alat Pakan?"),
+        content: const Text(
+          "Alat akan dihapus dari akun Anda. Anda harus mengklaim ulang jika ingin menggunakannya lagi.",
         ),
-        actionsAlignment: MainAxisAlignment.center,
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Coba Lagi',
-                style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18.0)),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Batal"),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+
+              // Tampilkan Loading
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (c) =>
+                    const Center(child: CircularProgressIndicator()),
+              );
+
+              try {
+                final storage = context.read<StorageService>();
+                final api = context.read<ApiService>();
+
+                final deviceId = storage.getPakanId();
+                final userId = storage.getUserIdFromDB();
+
+                // 1. Lepas Kepemilikan di Server
+                if (deviceId != null && userId != null) {
+                  await api.releaseDevice(deviceId, userId);
+                }
+
+                // 2. Hapus ID dari HP
+                await storage.clearPakanId();
+
+                if (context.mounted) {
+                  Navigator.pop(context); // Tutup Loading
+                  Navigator.of(context).pop(); // Kembali ke Dashboard
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Alat berhasil dihapus."),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  Navigator.pop(context); // Tutup Loading
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        "Gagal: ${e.toString().replaceAll('Exception:', '')}",
+                      ),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text("Hapus", style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -133,115 +235,213 @@ class _ProvisionPageState extends State<ProvisionPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text(
-          'Tambah Perangkat Baru',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.black),
-      ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-              24.0,
-              MediaQuery.of(context).padding.top + kToolbarHeight + 20,
-              24.0,
-              24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Icon(
-                  Icons.devices_other_outlined,
-                  size: 80,
-                  color: AppColors.textSecondary,
+    return BlocListener<ScheduleCubit, ScheduleState>(
+      listener: (context, state) {
+        if (state is ScheduleUpdateSuccess) {
+          setState(() {
+            _currentSchedules = List<String>.from(state.newSchedules);
+            _currentSchedules.sort();
+          });
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              const SnackBar(
+                content: Text('Jadwal tersimpan otomatis!'),
+                backgroundColor: AppColors.statusGood,
+                duration: Duration(seconds: 1),
+              ),
+            );
+        } else if (state is ScheduleError) {
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text('Gagal menyimpan: ${state.message}'),
+                backgroundColor: AppColors.statusDanger,
+              ),
+            );
+        }
+      },
+      child: BlocBuilder<ScheduleCubit, ScheduleState>(
+        builder: (context, state) {
+          if (state is ScheduleLoaded && !_isDataLoaded) {
+            _currentSchedules = List<String>.from(state.schedules);
+            _currentSchedules.sort();
+            _isDataLoaded = true;
+          }
+
+          return Scaffold(
+            extendBodyBehindAppBar: true,
+            backgroundColor: AppColors.background,
+            appBar: AppBar(
+              title: const Text(
+                'Atur Jadwal Pakan',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
                 ),
-                const SizedBox(height: 24),
-                const Text(
-                  'Masukkan Kode Unik',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+              ),
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              centerTitle: true,
+              iconTheme: const IconThemeData(color: Colors.black),
+              actions: [
+                IconButton(
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: AppColors.statusDanger,
                   ),
+                  tooltip: "Hapus Alat",
+                  onPressed: () => _deleteDevice(context),
                 ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Masukkan kode yang tertera pada stiker perangkat Anda.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 40),
-                TextFormField(
-                  controller: _kodeUnikController,
-                  textCapitalization: TextCapitalization.characters,
-                  style: const TextStyle(color: AppColors.textPrimary),
-                  decoration: InputDecoration(
-                    labelText: 'Kode Unik Perangkat',
-                    labelStyle: const TextStyle(color: AppColors.textSecondary),
-                    hintText: 'Cth: SENSOR-A1B2C3',
-                    hintStyle: const TextStyle(color: AppColors.textSecondary),
-                    filled: true,
-                    fillColor: AppColors.card,
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                          color: AppColors.textSecondary.withOpacity(0.5)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          const BorderSide(color: AppColors.primary, width: 2),
-                    ),
-                    prefixIcon: const Icon(Icons.qr_code_scanner,
-                        color: AppColors.textSecondary),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Kode tidak boleh kosong';
-                    }
-                    if (!value.startsWith('SENSOR-') &&
-                        !value.startsWith('PAKAN-')) {
-                      return 'Format salah (Harus SENSOR- atau PAKAN-)';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 40),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: _isLoading ? null : _tambahPerangkat,
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Tambahkan Perangkat',
-                          style: TextStyle(color: Colors.white, fontSize: 18)),
-                ),
+                const SizedBox(width: 8),
               ],
             ),
-          ),
-        ),
+            body: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  height: MediaQuery.of(context).padding.top + kToolbarHeight,
+                ),
+
+                // 1. Gambar Header
+                Center(
+                  child: Container(
+                    height: 180,
+                    margin: const EdgeInsets.symmetric(vertical: 24),
+                    padding: const EdgeInsets.all(20),
+                    child: Image.asset(
+                      'assets/images/pakan_device.png', // Pastikan nama file benar
+                      fit: BoxFit.contain,
+                      errorBuilder: (ctx, err, stack) => const Icon(
+                        Icons.pets,
+                        size: 50,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // 2. Judul List
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Text(
+                    "Daftar Waktu Pemberian Pakan",
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // 3. List Jadwal + Tombol Tambah
+                Expanded(child: _buildBody(context, state)),
+              ],
+            ),
+          );
+        },
       ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context, ScheduleState state) {
+    if (state is ScheduleLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
+    }
+
+    if (state is ScheduleError && !_isDataLoaded) {
+      return Center(
+        child: SensorErrorWidget(
+          message: state.message,
+          onRetry: () => context.read<ScheduleCubit>().fetchSchedule(),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
+      itemCount: _currentSchedules.length + 1,
+      itemBuilder: (context, index) {
+        // --- TOMBOL TAMBAH (ITEM TERAKHIR) ---
+        if (index == _currentSchedules.length) {
+          return Padding(
+            padding: const EdgeInsets.only(top: 12.0),
+            child: InkWell(
+              onTap: _addSchedule,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                height: 60,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.grey.withOpacity(0.5),
+                    width: 2,
+                    style: BorderStyle.solid,
+                  ),
+                ),
+                child: const Center(
+                  child: Icon(Icons.add, color: Colors.grey, size: 32),
+                ),
+              ),
+            ),
+          );
+        }
+
+        // --- ITEM KARTU JADWAL ---
+        final time = _currentSchedules[index];
+        return Card(
+          color: AppColors.card,
+          margin: const EdgeInsets.only(bottom: 12),
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
+            leading: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.access_time_filled,
+                color: AppColors.primary,
+              ),
+            ),
+            title: Text(
+              time,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            trailing: IconButton(
+              icon: const Icon(
+                Icons.delete_outline,
+                color: AppColors.statusDanger,
+              ),
+              onPressed: () {
+                setState(() {
+                  _currentSchedules.removeAt(index);
+                });
+                context.read<ScheduleCubit>().updateSchedule(_currentSchedules);
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }

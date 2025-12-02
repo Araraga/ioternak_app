@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_colors.dart'; // Warna kustom
 
 class SensorErrorWidget extends StatelessWidget {
+  /// Pesan error yang akan ditampilkan
   final String message;
 
+  /// Fungsi yang akan dipanggil saat tombol 'Coba Lagi' ditekan
   final VoidCallback onRetry;
 
   const SensorErrorWidget({
@@ -21,12 +23,11 @@ class SensorErrorWidget extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              color: AppColors.statusDanger,
-              size: 64,
-            );
-            const SizedBox(height: 24);
+            // Ikon Error
+            Icon(Icons.error_outline, color: AppColors.statusDanger, size: 64),
+            const SizedBox(height: 24),
+
+            // Judul Error
             const Text(
               'Gagal Memuat Data',
               textAlign: TextAlign.center,
@@ -35,8 +36,10 @@ class SensorErrorWidget extends StatelessWidget {
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
               ),
-            );
-            const SizedBox(height: 12);
+            ),
+            const SizedBox(height: 12),
+
+            // Pesan Error Detail
             Text(
               message,
               textAlign: TextAlign.center,
@@ -44,12 +47,17 @@ class SensorErrorWidget extends StatelessWidget {
                 fontSize: 16,
                 color: AppColors.textSecondary,
               ),
-            );
-            const SizedBox(height: 32);
+            ),
+            const SizedBox(height: 32),
+
+            // Tombol Coba Lagi
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
               ),
               onPressed: onRetry,
               icon: const Icon(Icons.refresh),

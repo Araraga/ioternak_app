@@ -14,7 +14,7 @@ class AmmoniaChart extends StatefulWidget {
 class _AmmoniaChartState extends State<AmmoniaChart> {
   List<FlSpot> _spots = [];
   double _minY = 0;
-  double _maxY = 20;
+  double _maxY = 10;
 
   @override
   void initState() {
@@ -22,135 +22,173 @@ class _AmmoniaChartState extends State<AmmoniaChart> {
     _processData();
   }
 
+  @override
+  void didUpdateWidget(covariant AmmoniaChart oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.sensorData != oldWidget.sensorData) {
+      _processData();
+    }
+  }
+
   void _processData() {
-    final List<FlSpot> spots = [];
-    double minY = double.maxFinite;
-    double maxY = double.minPositive;
-
-    const double padding = 3.0;
-
     if (widget.sensorData.isEmpty) {
-      setState(() => _spots = []);
+      if (mounted) setState(() => _spots = []);
       return;
     }
 
-    for (int i = 0; i < widget.sensorData.length; i++) {
-      final item = widget.sensorData[i] as Map<String, dynamic>? ?? {};
-      final rawValue = item['amonia'];
+    final List<FlSpot> tempSpots = [];
+    double minY = double.maxFinite;
+    double maxY = double.minPositive;
 
+    final List<dynamic> sortedData = List.from(widget.sensorData.reversed);
+
+    for (int i = 0; i < sortedData.length; i++) {
+      final item = sortedData[i] as Map<String, dynamic>? ?? {};
+      final dynamic rawValue = item['amonia'] ?? item['gas_ppm'];
+
+      double? value;
       if (rawValue != null) {
-        final double value = (rawValue as num).toDouble();
-        spots.add(FlSpot(i.toDouble(), value));
+        value = double.tryParse(rawValue.toString());
+      }
+
+      if (value != null) {
+        tempSpots.add(FlSpot(i.toDouble(), value));
         if (value < minY) minY = value;
         if (value > maxY) maxY = value;
       }
     }
 
     if (minY == double.maxFinite) minY = 0;
-    if (maxY == double.minPositive) maxY = 30;
+    if (maxY == double.minPositive) maxY = 10;
 
-    setState(() {
-      _spots = spots;
-      _minY = (minY - padding).clamp(0, double.maxFinite);
-      _maxY = (maxY + padding);
-    });
+    if (minY == maxY) {
+      maxY += 5;
+      minY = (minY - 5).clamp(0, double.maxFinite);
+    } else {
+      maxY += 2;
+      minY = (minY - 2).clamp(0, double.maxFinite);
+    }
+
+    // Bulatkan ke kelipatan 5 agar interval rapi
+    maxY = (maxY / 5).ceil() * 5.0;
+
+    if (mounted) {
+      setState(() {
+        _spots = tempSpots;
+        _minY = minY;
+        _maxY = maxY;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_spots.length < 2) {
-      return Card(
-        color: AppColors.card,
-        child: Container(
-          height: 250,
-          alignment: Alignment.center,
-          child: const Text(
-            'Data amonia tidak cukup untuk menampilkan grafik.',
-            style: TextStyle(color: AppColors.textSecondary),
-          ),
+      return Container(
+        height: 200,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.withOpacity(0.2)),
+        ),
+        child: const Text(
+          'Data belum cukup untuk menampilkan tren.',
+          style: TextStyle(color: AppColors.textSecondary),
         ),
       );
     }
 
-    return Card(
-      color: AppColors.card,
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Tren Amonia (PPM)',
-              style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+    return Container(
+      height: 250,
+      // [PERUBAHAN 1] Padding kiri ditambah (12) agar angka tidak mepet pinggir container
+      padding: const EdgeInsets.fromLTRB(12, 24, 24, 10),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+      ),
+      child: LineChart(
+        LineChartData(
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            // [PERUBAHAN 2] Interval dibagi 5 (sebelumnya 4) agar grid lebih rapat/kecil gap-nya
+            horizontalInterval: ((_maxY - _minY) / 5) < 1
+                ? 1
+                : (_maxY - _minY) / 5,
+            getDrawingHorizontalLine: (value) => FlLine(
+              color: Colors.grey.withOpacity(0.15),
+              strokeWidth: 1,
+              dashArray: [5, 5],
             ),
-            const SizedBox(height: 24),
-            SizedBox(
-              height: 200,
-              child: LineChart(
-                _mainChartData(),
+          ),
+          titlesData: FlTitlesData(
+            show: true,
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            bottomTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                // [PERUBAHAN 3] Reserved size disesuaikan agar pas dengan padding baru
+                reservedSize: 30,
+                getTitlesWidget: (value, meta) {
+                  if (value % 1 != 0) return const SizedBox.shrink();
+
+                  return Padding(
+                    padding: const EdgeInsets.only(
+                      right: 6.0,
+                    ), // Jarak angka ke garis grafik
+                    child: Text(
+                      value.toInt().toString(),
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          borderData: FlBorderData(show: false),
+          minX: 0,
+          maxX: (_spots.length - 1).toDouble(),
+          minY: _minY,
+          maxY: _maxY,
+          lineBarsData: [
+            LineChartBarData(
+              spots: _spots,
+              isCurved: true,
+              color: AppColors.statusDanger,
+              barWidth: 2.5,
+              isStrokeCapRound: true,
+              dotData: const FlDotData(show: false),
+              belowBarData: BarAreaData(
+                show: true,
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.statusDanger.withOpacity(0.2),
+                    AppColors.statusDanger.withOpacity(0.0),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
               ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  LineChartData _mainChartData() {
-    return LineChartData(
-      titlesData: FlTitlesData(
-        show: true,
-        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        bottomTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        leftTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            reservedSize: 35,
-            interval: (_maxY - _minY) / 3,
-            getTitlesWidget: (value, meta) {
-              return Text(
-                '${value.toInt()}',
-                style: const TextStyle(color: AppColors.textSecondary, fontSize: 10),
-                textAlign: TextAlign.left,
-              );
-            },
-          ),
-        ),
-      ),
-      gridData: FlGridData(
-        show: true,
-        drawVerticalLine: true,
-        horizontalInterval: (_maxY - _minY) / 3,
-        getDrawingHorizontalLine: (value) => FlLine(
-          color: AppColors.textSecondary.withOpacity(0.1),
-          strokeWidth: 1,
-        ),
-        getDrawingVerticalLine: (value) => FlLine(
-          color: AppColors.textSecondary.withOpacity(0.1),
-          strokeWidth: 1,
-        ),
-      ),
-      borderData: FlBorderData(show: false),
-      minX: 0,
-      maxX: (_spots.length - 1).toDouble(),
-      minY: _minY,
-      maxY: _maxY,
-      lineBarsData: [
-        LineChartBarData(
-          spots: _spots,
-          isCurved: true,
-          color: AppColors.statusDanger,
-          barWidth: 3,
-          dotData: const FlDotData(show: false),
-          belowBarData: BarAreaData(
-            show: true,
-            color: AppColors.statusDanger.withOpacity(0.2),
-          ),
-        ),
-      ],
     );
   }
 }
