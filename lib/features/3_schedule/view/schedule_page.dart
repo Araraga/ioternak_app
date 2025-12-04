@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart'; // Untuk Spinner Waktu
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/services/storage_service.dart';
-// Import Widget Reusable
 import '../../2_dashboard/widgets/sensor_error.dart';
 import '../cubit/schedule_cubit.dart';
 import '../cubit/schedule_state.dart';
@@ -35,7 +34,6 @@ class _ScheduleViewState extends State<ScheduleView> {
   List<String> _currentSchedules = [];
   bool _isDataLoaded = false;
 
-  // --- FUNGSI TAMBAH JADWAL (POPUP SPINNER) ---
   Future<void> _addSchedule() async {
     DateTime tempPickedTime = DateTime.now();
 
@@ -63,13 +61,11 @@ class _ScheduleViewState extends State<ScheduleView> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Spinner Waktu
                   SizedBox(
                     height: 180,
                     child: CupertinoTheme(
                       data: const CupertinoThemeData(
-                        brightness: Brightness
-                            .dark, // Agar teks terlihat di bg putih/gelap
+                        brightness: Brightness.dark,
                         textTheme: CupertinoTextThemeData(
                           dateTimePickerTextStyle: TextStyle(
                             color: AppColors.textPrimary,
@@ -90,7 +86,6 @@ class _ScheduleViewState extends State<ScheduleView> {
 
                   const SizedBox(height: 24),
 
-                  // Tombol Aksi
                   Row(
                     children: [
                       Expanded(
@@ -126,7 +121,6 @@ class _ScheduleViewState extends State<ScheduleView> {
                               }
                             });
 
-                            // Auto-save ke Server
                             context.read<ScheduleCubit>().updateSchedule(
                               _currentSchedules,
                             );
@@ -160,7 +154,6 @@ class _ScheduleViewState extends State<ScheduleView> {
     );
   }
 
-  // --- FUNGSI HAPUS DEVICE (API Release + Clear Local) ---
   void _deleteDevice(BuildContext context) async {
     showDialog(
       context: context,
@@ -178,7 +171,6 @@ class _ScheduleViewState extends State<ScheduleView> {
             onPressed: () async {
               Navigator.pop(ctx);
 
-              // Tampilkan Loading
               showDialog(
                 context: context,
                 barrierDismissible: false,
@@ -193,17 +185,15 @@ class _ScheduleViewState extends State<ScheduleView> {
                 final deviceId = storage.getPakanId();
                 final userId = storage.getUserIdFromDB();
 
-                // 1. Lepas Kepemilikan di Server
                 if (deviceId != null && userId != null) {
                   await api.releaseDevice(deviceId, userId);
                 }
 
-                // 2. Hapus ID dari HP
                 await storage.clearPakanId();
 
                 if (context.mounted) {
-                  Navigator.pop(context); // Tutup Loading
-                  Navigator.of(context).pop(); // Kembali ke Dashboard
+                  Navigator.pop(context);
+                  Navigator.of(context).pop();
 
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -214,7 +204,7 @@ class _ScheduleViewState extends State<ScheduleView> {
                 }
               } catch (e) {
                 if (context.mounted) {
-                  Navigator.pop(context); // Tutup Loading
+                  Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
@@ -275,7 +265,7 @@ class _ScheduleViewState extends State<ScheduleView> {
             backgroundColor: AppColors.background,
             appBar: AppBar(
               title: const Text(
-                'Atur Jadwal Pakan',
+                'IoTernak Smart Pakan',
                 style: TextStyle(
                   color: Colors.black,
                   fontWeight: FontWeight.bold,
@@ -304,14 +294,13 @@ class _ScheduleViewState extends State<ScheduleView> {
                   height: MediaQuery.of(context).padding.top + kToolbarHeight,
                 ),
 
-                // 1. Gambar Header
                 Center(
                   child: Container(
-                    height: 180,
+                    height: 150,
                     margin: const EdgeInsets.symmetric(vertical: 24),
                     padding: const EdgeInsets.all(20),
                     child: Image.asset(
-                      'assets/images/pakan_device.png', // Pastikan nama file benar
+                      'assets/images/alatpakan.png',
                       fit: BoxFit.contain,
                       errorBuilder: (ctx, err, stack) => const Icon(
                         Icons.pets,
@@ -322,7 +311,6 @@ class _ScheduleViewState extends State<ScheduleView> {
                   ),
                 ),
 
-                // 2. Judul List
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 24.0),
                   child: Text(
@@ -337,7 +325,6 @@ class _ScheduleViewState extends State<ScheduleView> {
 
                 const SizedBox(height: 16),
 
-                // 3. List Jadwal + Tombol Tambah
                 Expanded(child: _buildBody(context, state)),
               ],
             ),
@@ -367,7 +354,6 @@ class _ScheduleViewState extends State<ScheduleView> {
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
       itemCount: _currentSchedules.length + 1,
       itemBuilder: (context, index) {
-        // --- TOMBOL TAMBAH (ITEM TERAKHIR) ---
         if (index == _currentSchedules.length) {
           return Padding(
             padding: const EdgeInsets.only(top: 12.0),
@@ -394,7 +380,6 @@ class _ScheduleViewState extends State<ScheduleView> {
           );
         }
 
-        // --- ITEM KARTU JADWAL ---
         final time = _currentSchedules[index];
         return Card(
           color: AppColors.card,

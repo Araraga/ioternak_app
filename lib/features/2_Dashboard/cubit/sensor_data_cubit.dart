@@ -12,10 +12,9 @@ class SensorDataCubit extends Cubit<SensorDataState> {
   SensorDataCubit({
     required ApiService apiService,
     required StorageService storageService,
-  })  : _apiService = apiService,
-        _storageService = storageService,
-        super(SensorDataInitial()) {
-
+  }) : _apiService = apiService,
+       _storageService = storageService,
+       super(SensorDataInitial()) {
     fetchSensorData();
 
     _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
@@ -39,8 +38,11 @@ class SensorDataCubit extends Cubit<SensorDataState> {
 
       final sensorId = _storageService.getSensorId();
       if (sensorId == null || sensorId.isEmpty) {
-        emit(const SensorDataError(
-            'ID Perangkat Sensor tidak ditemukan di Storage.'));
+        emit(
+          const SensorDataError(
+            'ID Perangkat Sensor tidak ditemukan di Storage.',
+          ),
+        );
         return;
       }
 
@@ -51,7 +53,6 @@ class SensorDataCubit extends Cubit<SensorDataState> {
       } else {
         emit(const SensorDataError('Belum ada data terekam untuk ID ini.'));
       }
-
     } catch (e) {
       emit(SensorDataError(e.toString()));
     }

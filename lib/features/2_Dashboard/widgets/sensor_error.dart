@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../../core/constants/app_colors.dart'; // Warna kustom
+import '../../../core/constants/app_colors.dart';
 
 class SensorErrorWidget extends StatelessWidget {
-  /// Pesan error yang akan ditampilkan
   final String message;
 
-  /// Fungsi yang akan dipanggil saat tombol 'Coba Lagi' ditekan
   final VoidCallback onRetry;
 
   const SensorErrorWidget({
@@ -23,11 +21,9 @@ class SensorErrorWidget extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Ikon Error
             Icon(Icons.error_outline, color: AppColors.statusDanger, size: 64),
             const SizedBox(height: 24),
 
-            // Judul Error
             const Text(
               'Gagal Memuat Data',
               textAlign: TextAlign.center,
@@ -39,7 +35,6 @@ class SensorErrorWidget extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            // Pesan Error Detail
             Text(
               message,
               textAlign: TextAlign.center,
@@ -50,7 +45,6 @@ class SensorErrorWidget extends StatelessWidget {
             ),
             const SizedBox(height: 32),
 
-            // Tombol Coba Lagi
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,

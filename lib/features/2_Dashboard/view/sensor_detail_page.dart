@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/services/storage_service.dart';
-// Import Widget Reusable
 import '../../2_dashboard/widgets/sensor_error.dart';
 import '../../2_dashboard/widgets/amonia_chart.dart';
 import '../cubit/sensor_data_cubit.dart';
@@ -27,7 +26,6 @@ class SensorDetailPage extends StatelessWidget {
 class SensorDetailView extends StatelessWidget {
   const SensorDetailView({super.key});
 
-  // --- FUNGSI HAPUS SENSOR (API Release + Clear Local) ---
   void _deleteDevice(BuildContext context) async {
     showDialog(
       context: context,
@@ -59,17 +57,15 @@ class SensorDetailView extends StatelessWidget {
                 final deviceId = storage.getSensorId();
                 final userId = storage.getUserIdFromDB();
 
-                // 1. Lepas Kepemilikan di Server
                 if (deviceId != null && userId != null) {
                   await api.releaseDevice(deviceId, userId);
                 }
 
-                // 2. Hapus ID dari HP
                 await storage.clearSensorId();
 
                 if (context.mounted) {
-                  Navigator.pop(context); // Tutup Loading
-                  Navigator.of(context).pop(); // Kembali ke Dashboard
+                  Navigator.pop(context);
+                  Navigator.of(context).pop();
 
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -158,7 +154,7 @@ class SensorDetailView extends StatelessWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Detail Sensor Kandang',
+          'Ioternak Smart Sensor',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.transparent,
@@ -209,7 +205,6 @@ class SensorDetailView extends StatelessWidget {
             double gasVal = double.tryParse(ammoniaStr) ?? 0;
             double tempVal = double.tryParse(tempStr) ?? 0;
 
-            // Logic Status Aman
             bool isSafe = (gasVal < 20.0) && (tempVal < 33.0);
             String statusText = isSafe
                 ? "Kondisi Kandang BAIK"
@@ -228,7 +223,6 @@ class SensorDetailView extends StatelessWidget {
                     height: MediaQuery.of(context).padding.top + kToolbarHeight,
                   ),
 
-                  // 1. Gambar Header
                   Center(
                     child: Container(
                       height: 130,
@@ -245,7 +239,6 @@ class SensorDetailView extends StatelessWidget {
                     ),
                   ),
 
-                  // 2. Card Data Angka
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16),
                     padding: const EdgeInsets.all(20),
@@ -294,32 +287,6 @@ class SensorDetailView extends StatelessWidget {
 
                   const SizedBox(height: 24),
 
-                  // 3. Grafik Amonia
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Grafik Tren Amonia",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          height: 280,
-                          child: AmmoniaChart(sensorData: sensorDataList),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // 4. Section Status Kandang
                   Container(
                     width: double.infinity,
                     margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -347,7 +314,7 @@ class SensorDetailView extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         const Text(
-                          "Berdasarkan parameter suhu & gas",
+                          "Berdasarkan parameter suhu, kelembapan, & gas",
                           style: TextStyle(color: AppColors.textSecondary),
                         ),
                       ],

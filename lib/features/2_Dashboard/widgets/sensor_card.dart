@@ -3,15 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/services/storage_service.dart';
-
-// Import Cubit & State Sensor
 import '../cubit/sensor_data_cubit.dart';
 import '../cubit/sensor_data_state.dart';
-
-// [PENTING] Import Dashboard Cubit untuk refresh Home
 import '../cubit/dashboard_cubit.dart';
-
-// Import Halaman Detail & Error
 import '../view/sensor_detail_page.dart';
 import 'sensor_error.dart';
 
@@ -82,7 +76,7 @@ class SensorCard extends StatelessWidget {
       child: Card(
         color: AppColors.card,
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: () {
@@ -90,15 +84,9 @@ class SensorCard extends StatelessWidget {
               context,
               MaterialPageRoute(builder: (_) => const SensorDetailPage()),
             ).then((_) {
-              // [PERBAIKAN UTAMA DISINI]
-              // Saat kembali ke Home:
-
-              // 1. Refresh data sensor (opsional, jaga2 jika tidak dihapus)
-              // Kita gunakan try-catch atau mounted check karena context mungkin sudah beda
               if (context.mounted) {
                 context.read<SensorDataCubit>().fetchSensorData();
 
-                // 2. Refresh DASHBOARD (Agar jika dihapus, kartu hilang)
                 context.read<DashboardCubit>().checkDevices();
               }
             });
@@ -148,7 +136,7 @@ class SensorCard extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
-                            'Monitoring Sensor',
+                            'IoTernak Smart Sensor',
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,

@@ -4,26 +4,32 @@ import '../../../core/services/storage_service.dart';
 
 class DashboardCubit extends Cubit<DashboardState> {
   final StorageService _storageService;
-
   DashboardCubit({required StorageService storageService})
-      : _storageService = storageService,
-        super(DashboardInitial());
+    : _storageService = storageService,
+      super(DashboardInitial());
 
   Future<void> checkDevices() async {
     try {
       emit(DashboardLoading());
       final sensorId = _storageService.getSensorId();
       final pakanId = _storageService.getPakanId();
+      final name = _storageService.getUserName() ?? "Peternak";
 
-      emit(DashboardLoaded(
-        hasSensorDevice: sensorId != null && sensorId.isNotEmpty,
-        hasPakanDevice: pakanId != null && pakanId.isNotEmpty,
-      ));
+      emit(
+        DashboardLoaded(
+          hasSensorDevice: sensorId != null && sensorId.isNotEmpty,
+          hasPakanDevice: pakanId != null && pakanId.isNotEmpty,
+          userName: name,
+        ),
+      );
     } catch (e) {
-      emit(const DashboardLoaded(
-        hasSensorDevice: false,
-        hasPakanDevice: false,
-      ));
+      emit(
+        const DashboardLoaded(
+          hasSensorDevice: false,
+          hasPakanDevice: false,
+          userName: "Peternak",
+        ),
+      );
     }
   }
 
@@ -32,15 +38,23 @@ class DashboardCubit extends Cubit<DashboardState> {
       emit(DashboardLoading());
       await _storageService.clearDeviceIds();
 
-      emit(const DashboardLoaded(
-        hasSensorDevice: false,
-        hasPakanDevice: false,
-      ));
+      final name = _storageService.getUserName() ?? "Peternak";
+
+      emit(
+        DashboardLoaded(
+          hasSensorDevice: false,
+          hasPakanDevice: false,
+          userName: name,
+        ),
+      );
     } catch (e) {
-      emit(const DashboardLoaded(
-        hasSensorDevice: false,
-        hasPakanDevice: false,
-      ));
+      emit(
+        const DashboardLoaded(
+          hasSensorDevice: false,
+          hasPakanDevice: false,
+          userName: "Peternak",
+        ),
+      );
     }
   }
 }

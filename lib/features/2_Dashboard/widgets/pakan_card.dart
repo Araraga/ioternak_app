@@ -3,15 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/services/storage_service.dart';
-
-// Import Cubit Schedule
 import '../../3_schedule/cubit/schedule_cubit.dart';
 import '../../3_schedule/cubit/schedule_state.dart';
 import '../../3_schedule/view/schedule_page.dart';
-
-// [PENTING] Import Dashboard Cubit
 import '../cubit/dashboard_cubit.dart';
-
 import 'sensor_error.dart';
 
 class PakanCard extends StatelessWidget {
@@ -45,12 +40,9 @@ class _PakanCardView extends StatelessWidget {
             context,
             MaterialPageRoute(builder: (_) => const SchedulePage()),
           ).then((_) {
-            // [PERBAIKAN UTAMA]
             if (context.mounted) {
-              // 1. Refresh data jadwal internal (jika card masih ada)
               context.read<ScheduleCubit>().fetchSchedule();
 
-              // 2. Refresh DASHBOARD UTAMA (Cek apakah alat dihapus?)
               context.read<DashboardCubit>().checkDevices();
             }
           });
@@ -60,12 +52,11 @@ class _PakanCardView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    'Kontrol Pakan',
+                    'IoTernak Smart Pakan',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -82,7 +73,6 @@ class _PakanCardView extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-              // Subtitle
               const Text(
                 'Jadwal pakan otomatis aktif:',
                 style: TextStyle(
@@ -94,7 +84,6 @@ class _PakanCardView extends StatelessWidget {
 
               const SizedBox(height: 12),
 
-              // List Jadwal
               BlocBuilder<ScheduleCubit, ScheduleState>(
                 builder: (context, state) {
                   if (state is ScheduleLoading || state is ScheduleInitial) {
@@ -135,7 +124,7 @@ class _PakanCardView extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Text(
-                          "Belum ada jadwal aktif (Alat Non-aktif)",
+                          "Belum ada jadwal aktif",
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: AppColors.textSecondary,

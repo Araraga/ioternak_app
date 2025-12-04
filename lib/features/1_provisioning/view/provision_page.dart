@@ -32,22 +32,32 @@ class _ProvisionPageState extends State<ProvisionPage> {
     bool isSuccess = false;
 
     try {
-      final apiService = context.read<ApiService>();
-      final storageService = context.read<StorageService>();
-      final bool deviceExists = await apiService.checkDeviceExists(kode);
+      final storage = context.read<StorageService>();
+      final api = context.read<ApiService>();
 
-      if (deviceExists) {
-        if (kode.startsWith('SENSOR-')) {
-          await storageService.saveSensorId(kode);
-        } else if (kode.startsWith('PAKAN-')) {
-          await storageService.savePakanId(kode);
-        }
-        isSuccess = true;
-      } else {
-        errorMessage = 'Perangkat dengan ID "$kode" tidak ditemukan di server.';
+      final userId = storage.getUserIdFromDB();
+      final userPhone = storage.getUserPhone();
+
+      if (userId == null || userPhone == null) {
+        throw Exception("Sesi login kadaluarsa. Silakan logout & login ulang.");
       }
+
+      final result = await api.claimDevice(kode, userId, userPhone);
+
+      final String type = result['type'] ?? 'unknown';
+
+      if (type == 'sensor') {
+        await storage.saveSensorId(kode);
+      } else if (type == 'feeder') {
+        await storage.savePakanId(kode);
+      } else {
+        if (kode.startsWith('SENSOR')) await storage.saveSensorId(kode);
+        if (kode.startsWith('PAKAN')) await storage.savePakanId(kode);
+      }
+
+      isSuccess = true;
     } catch (e) {
-      errorMessage = 'Gagal terhubung ke server: $e';
+      errorMessage = e.toString().replaceAll("Exception:", "").trim();
     }
 
     if (!mounted) return;
@@ -55,7 +65,7 @@ class _ProvisionPageState extends State<ProvisionPage> {
     if (isSuccess) {
       _showSuccessDialog();
     } else {
-      _showErrorDialog(errorMessage ?? 'Terjadi kesalahan tidak diketahui.');
+      _showErrorDialog(errorMessage ?? 'Gagal menambahkan perangkat.');
       setState(() => _isLoading = false);
     }
   }
@@ -65,32 +75,40 @@ class _ProvisionPageState extends State<ProvisionPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.card,
-        title: const Text('Berhasil!',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.primary)),
+        title: const Text(
+          'Berhasil!',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: AppColors.primary),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.check_circle_outline,
-                color: AppColors.primary, size: 60),
+            const Icon(
+              Icons.check_circle_outline,
+              color: AppColors.primary,
+              size: 60,
+            ),
             const SizedBox(height: 16),
-            const Text('Perangkat berhasil ditambahkan.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.textPrimary)),
+            const Text(
+              'Perangkat berhasil diklaim & ditambahkan.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textPrimary),
+            ),
           ],
         ),
-        actionsAlignment: MainAxisAlignment.center,
         actions: [
           TextButton(
             onPressed: () {
               Navigator.of(ctx).pop();
               Navigator.of(context).pop();
             },
-            child: const Text('OK',
-                style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18.0)),
+            child: const Text(
+              'OK',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -102,29 +120,37 @@ class _ProvisionPageState extends State<ProvisionPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.card,
-        title: const Text('Gagal',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.statusDanger)),
+        title: const Text(
+          'Gagal',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: AppColors.statusDanger),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline,
-                color: AppColors.statusDanger, size: 60),
+            const Icon(
+              Icons.error_outline,
+              color: AppColors.statusDanger,
+              size: 60,
+            ),
             const SizedBox(height: 16),
-            Text(message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textPrimary)),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textPrimary),
+            ),
           ],
         ),
-        actionsAlignment: MainAxisAlignment.center,
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Coba Lagi',
-                style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18.0)),
+            child: const Text(
+              'Coba Lagi',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -138,11 +164,8 @@ class _ProvisionPageState extends State<ProvisionPage> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Tambah Perangkat Baru',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
+          'Tambah Perangkat',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -152,25 +175,23 @@ class _ProvisionPageState extends State<ProvisionPage> {
       body: Center(
         child: SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(
-              24.0,
-              MediaQuery.of(context).padding.top + kToolbarHeight + 20,
-              24.0,
-              24.0),
+            24.0,
+            MediaQuery.of(context).padding.top + kToolbarHeight + 20,
+            24.0,
+            24.0,
+          ),
           child: Form(
             key: _formKey,
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Icon(
-                  Icons.devices_other_outlined,
+                  Icons.qr_code,
                   size: 80,
                   color: AppColors.textSecondary,
                 ),
                 const SizedBox(height: 24),
                 const Text(
-                  'Masukkan Kode Unik',
-                  textAlign: TextAlign.center,
+                  'Klaim Kepemilikan',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -179,12 +200,9 @@ class _ProvisionPageState extends State<ProvisionPage> {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'Masukkan kode yang tertera pada stiker perangkat Anda.',
+                  'Masukkan ID perangkat yang terdapat pada kertas dalam paket pembelian.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: AppColors.textSecondary,
-                  ),
+                  style: TextStyle(color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 40),
                 TextFormField(
@@ -192,41 +210,29 @@ class _ProvisionPageState extends State<ProvisionPage> {
                   textCapitalization: TextCapitalization.characters,
                   style: const TextStyle(color: AppColors.textPrimary),
                   decoration: InputDecoration(
-                    labelText: 'Kode Unik Perangkat',
-                    labelStyle: const TextStyle(color: AppColors.textSecondary),
+                    labelText: 'ID Perangkat',
                     hintText: 'Cth: SENSOR-A1B2C3',
-                    hintStyle: const TextStyle(color: AppColors.textSecondary),
                     filled: true,
                     fillColor: AppColors.card,
-                    enabledBorder: OutlineInputBorder(
+                    border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                          color: AppColors.textSecondary.withOpacity(0.5)),
                     ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          const BorderSide(color: AppColors.primary, width: 2),
+                    prefixIcon: const Icon(
+                      Icons.vpn_key,
+                      color: AppColors.textSecondary,
                     ),
-                    prefixIcon: const Icon(Icons.qr_code_scanner,
-                        color: AppColors.textSecondary),
                   ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Kode tidak boleh kosong';
-                    }
-                    if (!value.startsWith('SENSOR-') &&
-                        !value.startsWith('PAKAN-')) {
-                      return 'Format salah (Harus SENSOR- atau PAKAN-)';
-                    }
-                    return null;
-                  },
+                  validator: (v) =>
+                      (v == null || v.isEmpty) ? 'ID tidak boleh kosong' : null,
                 ),
                 const SizedBox(height: 40),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 16,
+                      horizontal: 32,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -234,8 +240,10 @@ class _ProvisionPageState extends State<ProvisionPage> {
                   onPressed: _isLoading ? null : _tambahPerangkat,
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Tambahkan Perangkat',
-                          style: TextStyle(color: Colors.white, fontSize: 18)),
+                      : const Text(
+                          'Tambahkan Perangkat',
+                          style: TextStyle(color: Colors.white, fontSize: 18),
+                        ),
                 ),
               ],
             ),

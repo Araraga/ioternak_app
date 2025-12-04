@@ -21,6 +21,10 @@ class ApiEndpoints {
     return "https://$baseUrl/api/register";
   }
 
+  static String get loginUser {
+    return "https://$baseUrl/api/login";
+  }
+
   static String get claimDevice {
     return "https://$baseUrl/api/claim-device";
   }

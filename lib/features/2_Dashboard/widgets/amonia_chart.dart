@@ -31,8 +31,10 @@ class _AmmoniaChartState extends State<AmmoniaChart> {
   }
 
   void _processData() {
+    if (!mounted) return;
+
     if (widget.sensorData.isEmpty) {
-      if (mounted) setState(() => _spots = []);
+      setState(() => _spots = []);
       return;
     }
 
@@ -51,26 +53,34 @@ class _AmmoniaChartState extends State<AmmoniaChart> {
         value = double.tryParse(rawValue.toString());
       }
 
-      if (value != null) {
+      if (value != null && !value.isNaN && !value.isInfinite) {
         tempSpots.add(FlSpot(i.toDouble(), value));
         if (value < minY) minY = value;
         if (value > maxY) maxY = value;
       }
     }
 
+    if (tempSpots.isEmpty) {
+      if (mounted) setState(() => _spots = []);
+      return;
+    }
+
     if (minY == double.maxFinite) minY = 0;
     if (maxY == double.minPositive) maxY = 10;
 
-    if (minY == maxY) {
-      maxY += 5;
-      minY = (minY - 5).clamp(0, double.maxFinite);
+    if (minY >= maxY) {
+      maxY = minY + 10;
+      minY = (minY - 10).clamp(0, double.maxFinite);
     } else {
-      maxY += 2;
-      minY = (minY - 2).clamp(0, double.maxFinite);
+      double diff = maxY - minY;
+      if (diff < 1) diff = 1;
+
+      maxY += (diff * 0.2);
+      minY = (minY - (diff * 0.2)).clamp(0, double.maxFinite);
     }
 
-    // Bulatkan ke kelipatan 5 agar interval rapi
     maxY = (maxY / 5).ceil() * 5.0;
+    if (maxY == 0) maxY = 5;
 
     if (mounted) {
       setState(() {
@@ -100,10 +110,14 @@ class _AmmoniaChartState extends State<AmmoniaChart> {
       );
     }
 
+    double range = _maxY - _minY;
+    if (range <= 0) range = 1; // Cegah 0
+    double interval = range / 4;
+    if (interval <= 0) interval = 1;
+
     return Container(
       height: 250,
-      // [PERUBAHAN 1] Padding kiri ditambah (12) agar angka tidak mepet pinggir container
-      padding: const EdgeInsets.fromLTRB(12, 24, 24, 10),
+      padding: const EdgeInsets.only(right: 24, top: 24, bottom: 12, left: 10),
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(16),
@@ -114,16 +128,14 @@ class _AmmoniaChartState extends State<AmmoniaChart> {
           gridData: FlGridData(
             show: true,
             drawVerticalLine: false,
-            // [PERUBAHAN 2] Interval dibagi 5 (sebelumnya 4) agar grid lebih rapat/kecil gap-nya
-            horizontalInterval: ((_maxY - _minY) / 5) < 1
-                ? 1
-                : (_maxY - _minY) / 5,
+            horizontalInterval: interval,
             getDrawingHorizontalLine: (value) => FlLine(
               color: Colors.grey.withOpacity(0.15),
               strokeWidth: 1,
               dashArray: [5, 5],
             ),
           ),
+
           titlesData: FlTitlesData(
             show: true,
             rightTitles: const AxisTitles(
@@ -135,18 +147,18 @@ class _AmmoniaChartState extends State<AmmoniaChart> {
             bottomTitles: const AxisTitles(
               sideTitles: SideTitles(showTitles: false),
             ),
+
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                // [PERUBAHAN 3] Reserved size disesuaikan agar pas dengan padding baru
+                interval: interval,
                 reservedSize: 30,
                 getTitlesWidget: (value, meta) {
-                  if (value % 1 != 0) return const SizedBox.shrink();
+                  if ((value - value.round()).abs() > 0.1)
+                    return const SizedBox.shrink();
 
                   return Padding(
-                    padding: const EdgeInsets.only(
-                      right: 6.0,
-                    ), // Jarak angka ke garis grafik
+                    padding: const EdgeInsets.only(right: 6.0),
                     child: Text(
                       value.toInt().toString(),
                       style: const TextStyle(
@@ -161,11 +173,13 @@ class _AmmoniaChartState extends State<AmmoniaChart> {
               ),
             ),
           ),
+
           borderData: FlBorderData(show: false),
           minX: 0,
           maxX: (_spots.length - 1).toDouble(),
           minY: _minY,
           maxY: _maxY,
+
           lineBarsData: [
             LineChartBarData(
               spots: _spots,

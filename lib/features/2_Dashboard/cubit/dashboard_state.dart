@@ -1,6 +1,5 @@
 import 'package:equatable/equatable.dart';
 
-// Induk abstract class
 abstract class DashboardState extends Equatable {
   const DashboardState();
 
@@ -15,12 +14,14 @@ class DashboardLoading extends DashboardState {}
 class DashboardLoaded extends DashboardState {
   final bool hasSensorDevice;
   final bool hasPakanDevice;
+  final String userName;
 
   const DashboardLoaded({
     required this.hasSensorDevice,
     required this.hasPakanDevice,
+    required this.userName,
   });
 
   @override
-  List<Object> get props => [hasSensorDevice, hasPakanDevice];
+  List<Object> get props => [hasSensorDevice, hasPakanDevice, userName];
 }

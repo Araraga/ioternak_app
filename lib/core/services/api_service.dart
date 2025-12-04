@@ -6,6 +6,7 @@ class ApiService {
   Future<dynamic> getSensorData(String deviceId) async {
     final url = Uri.parse(ApiEndpoints.getSensorData(deviceId));
     final response = await http.get(url);
+
     if (response.statusCode == 200) return jsonDecode(response.body);
     throw Exception('Gagal memuat data sensor');
   }
@@ -13,6 +14,7 @@ class ApiService {
   Future<dynamic> getSchedule(String deviceId) async {
     final url = Uri.parse(ApiEndpoints.getSchedule(deviceId));
     final response = await http.get(url);
+
     if (response.statusCode == 200) return jsonDecode(response.body);
     throw Exception('Gagal memuat jadwal');
   }
@@ -42,6 +44,26 @@ class ApiService {
       return jsonDecode(response.body);
     } else {
       throw Exception('Gagal Registrasi: ${response.statusCode}');
+    }
+  }
+
+  Future<Map<String, dynamic>> loginUser(String phone) async {
+    final url = Uri.parse(ApiEndpoints.loginUser);
+
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'phone': phone}),
+    );
+
+    final result = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      return result;
+    } else if (response.statusCode == 404) {
+      throw Exception("Nomor belum terdaftar. Silakan registrasi akun baru.");
+    } else {
+      throw Exception('Gagal Login: ${response.statusCode}');
     }
   }
 

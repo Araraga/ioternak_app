@@ -6,7 +6,9 @@ import '../../../core/services/storage_service.dart';
 import '../cubit/dashboard_cubit.dart';
 import '../cubit/dashboard_state.dart';
 
+import '../../0_splash/view/onboarding_page.dart';
 import '../../1_provisioning/view/provision_page.dart';
+import '../../4_profile/view/profile_page.dart';
 import '../widgets/sensor_card.dart';
 import '../widgets/pakan_card.dart';
 
@@ -29,7 +31,6 @@ class HomeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Hitung Padding Atas agar konten muncul pas DI BAWAH AppBar
     final double statusBarHeight = MediaQuery.of(context).padding.top;
     final double topPadding = statusBarHeight + kToolbarHeight + 10.0;
 
@@ -38,26 +39,20 @@ class HomeView extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'Kandang Saya',
-          style: TextStyle(
-            color: Color.fromARGB(255, 255, 255, 255),
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         actions: [
-          // [PERUBAHAN 1] Icon Logout DIGANTI dengan Icon Plus (+)
           IconButton(
             icon: const Icon(
               Icons.add_circle_outline,
               size: 32,
-              color: Color.fromARGB(255, 255, 255, 255),
+              color: AppColors.primary,
             ),
             tooltip: 'Tambah Perangkat',
             onPressed: () {
-              // Logika pindah ke halaman Provisioning
               Navigator.of(context)
                   .push(
                     MaterialPageRoute(builder: (_) => const ProvisionPage()),
@@ -67,7 +62,7 @@ class HomeView extends StatelessWidget {
                   });
             },
           ),
-          const SizedBox(width: 8), // Sedikit jarak dari kanan
+          const SizedBox(width: 8),
         ],
       ),
       body: Container(
@@ -76,7 +71,7 @@ class HomeView extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.background,
           image: DecorationImage(
-            image: const AssetImage('assets/images/homebackground.png'),
+            image: const AssetImage('assets/images/background.png'),
             fit: BoxFit.cover,
             colorFilter: ColorFilter.mode(
               Colors.black.withOpacity(0.05),
@@ -93,7 +88,6 @@ class HomeView extends StatelessWidget {
             }
 
             if (state is DashboardLoaded) {
-              // Hitung jumlah perangkat aktif
               int deviceCount = 0;
               if (state.hasSensorDevice) deviceCount++;
               if (state.hasPakanDevice) deviceCount++;
@@ -101,35 +95,45 @@ class HomeView extends StatelessWidget {
               return ListView(
                 padding: EdgeInsets.fromLTRB(24, topPadding, 24, 40),
                 children: [
-                  // --- 1. HEADER (NAMA USER) ---
-                  // Tombol bulat besar (+) dihapus karena sudah pindah ke AppBar
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 45),
 
-                  // Nama User (Placeholder)
-                  // [FITUR TAMBAHAN] Tekan lama tulisan ini untuk Reset/Logout
                   InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ProfilePage()),
+                      ).then((_) {
+                        context.read<DashboardCubit>().checkDevices();
+                      });
+                    },
                     onLongPress: () {
                       showDialog(
                         context: context,
                         builder: (ctx) => AlertDialog(
                           title: const Text("Reset Aplikasi?"),
-                          content: const Text(
-                            "Data perangkat akan dihapus dari aplikasi ini.",
-                          ),
+                          content: const Text("Semua data lokal akan dihapus."),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(ctx),
                               child: const Text("Batal"),
                             ),
                             TextButton(
-                              onPressed: () {
+                              onPressed: () async {
                                 Navigator.pop(ctx);
-                                context
-                                    .read<DashboardCubit>()
-                                    .clearAllDevices();
+                                await context
+                                    .read<StorageService>()
+                                    .clearAllData();
+                                if (context.mounted) {
+                                  Navigator.of(context).pushAndRemoveUntil(
+                                    MaterialPageRoute(
+                                      builder: (_) => const OnboardingPage(),
+                                    ),
+                                    (route) => false,
+                                  );
+                                }
                               },
                               child: const Text(
-                                "Reset",
+                                "Reset Total",
                                 style: TextStyle(color: Colors.red),
                               ),
                             ),
@@ -137,59 +141,98 @@ class HomeView extends StatelessWidget {
                         ),
                       );
                     },
-                    child: const Text(
-                      'Halo, Peternak',
-                      style: TextStyle(
-                        fontSize: 30, // Ukuran Besar
-                        fontWeight: FontWeight.bold, // Tebal
-                        color: Color.fromARGB(255, 255, 255, 255),
-                      ),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Halo,',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color.fromARGB(255, 0, 0, 0),
+                          ),
+                        ),
+
+                        const SizedBox(height: 0),
+
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                state.userName,
+                                style: const TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+
+                            const SizedBox(width: 5),
+                            const Icon(
+                              Icons.arrow_forward_ios,
+                              size: 20,
+                              color: Color.fromARGB(255, 53, 53, 53),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
 
                   const SizedBox(height: 4),
 
-                  // Jumlah Device
                   Text(
-                    '$deviceCount Perangkat',
+                    '$deviceCount Perangkat Terhubung',
                     style: const TextStyle(
-                      fontSize: 12,
+                      fontSize: 16,
                       color: Color.fromARGB(255, 255, 255, 255),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
 
-                  const SizedBox(height: 50), // Jarak ke Kartu
+                  const SizedBox(height: 50),
 
-                  // --- 2. DAFTAR KARTU ---
                   if (deviceCount == 0)
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: const Color.fromARGB(
-                          255,
-                          138,
-                          138,
-                          138,
-                        ).withOpacity(0.8),
+                        color: AppColors.card.withOpacity(0.9),
                         borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                          ),
+                        ],
                       ),
-                      child: const Text(
-                        "Belum ada perangkat.\nTekan (+) di pojok kanan atas untuk menambahkan.",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Color.fromARGB(255, 255, 255, 255),
-                        ),
+                      child: Column(
+                        children: const [
+                          Icon(
+                            Icons.devices,
+                            size: 40,
+                            color: AppColors.textSecondary,
+                          ),
+                          SizedBox(height: 12),
+                          Text(
+                            "Belum ada perangkat.\nTekan ikon (+) di pojok kanan atas untuk menambahkan.",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: AppColors.textSecondary),
+                          ),
+                        ],
                       ),
                     ),
 
-                  // Kartu Sensor
                   if (state.hasSensorDevice) ...[
                     const SensorCard(),
                     const SizedBox(height: 16),
                   ],
 
-                  // Kartu Pakan
                   if (state.hasPakanDevice) const PakanCard(),
                 ],
               );
