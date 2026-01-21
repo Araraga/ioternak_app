@@ -4,8 +4,8 @@ import 'package:flutter/services.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/storage_service.dart';
 import '../../../core/services/api_service.dart';
-import '../../2_dashboard/view/home_page.dart';
 import 'register_page.dart';
+import '../../main_navigation/view/main_navigation_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -40,7 +40,9 @@ class _LoginPageState extends State<LoginPage> {
       if (!mounted) return;
 
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const HomePage()),
+        MaterialPageRoute(
+          builder: (_) => const MainNavigationPage(),
+        ), // <--- GANTI JADI INI
         (route) => false,
       );
     } catch (e) {
@@ -83,7 +85,7 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 24),
 
                 const Text(
-                  "Selamat Datang Kembali!",
+                  "Selamat Datang!",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 28,
@@ -93,7 +95,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  "Masukan nomor WhatsApp Anda untuk masuk.",
+                  "Masukan nomor Telepon Anda untuk masuk.",
                   textAlign: TextAlign.center,
                   style: TextStyle(color: AppColors.textSecondary),
                 ),
@@ -104,7 +106,7 @@ class _LoginPageState extends State<LoginPage> {
                   keyboardType: TextInputType.phone,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   decoration: InputDecoration(
-                    labelText: "Nomor WhatsApp",
+                    labelText: "Nomor Telepon",
                     prefixIcon: const Icon(Icons.phone_android),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),

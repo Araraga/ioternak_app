@@ -1,3 +1,4 @@
+import 'dart:convert'; // Wajib import ini untuk JSON
 import 'package:shared_preferences/shared_preferences.dart';
 
 class StorageService {
@@ -9,6 +10,8 @@ class StorageService {
   static const String _kUserPhone = 'user_phone';
   static const String _kUserIdDB = 'user_id_db';
   static const String _kOnboardingDone = 'onboarding_done';
+  // [BARU] Key untuk Riwayat Chat
+  static const String _kChatHistory = 'chat_history';
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -20,6 +23,7 @@ class StorageService {
     }
   }
 
+  // --- DEVICE MANAGEMENT ---
   Future<void> saveSensorId(String id) async {
     _checkInit();
     await _prefs!.setString(_kSensorIdKey, id);
@@ -56,6 +60,7 @@ class StorageService {
     await _prefs!.remove(_kPakanIdKey);
   }
 
+  // --- USER PROFILE ---
   Future<void> saveUserProfile(String name, String phone) async {
     _checkInit();
     await _prefs!.setString(_kUserName, name);
@@ -82,6 +87,7 @@ class StorageService {
     return _prefs!.getString(_kUserIdDB);
   }
 
+  // --- ONBOARDING ---
   Future<void> setOnboardingComplete() async {
     _checkInit();
     await _prefs!.setBool(_kOnboardingDone, true);
@@ -92,6 +98,31 @@ class StorageService {
     return _prefs!.getBool(_kOnboardingDone) ?? false;
   }
 
+  // --- [BARU] CHAT HISTORY ---
+  Future<void> saveChatHistory(List<Map<String, String>> messages) async {
+    _checkInit();
+    // Ubah List Map ke JSON String agar bisa disimpan
+    final String encoded = jsonEncode(messages);
+    await _prefs!.setString(_kChatHistory, encoded);
+  }
+
+  List<Map<String, String>> getChatHistory() {
+    _checkInit();
+    final String? jsonString = _prefs!.getString(_kChatHistory);
+
+    if (jsonString == null) return [];
+
+    // Ubah JSON String kembali ke List Map
+    List<dynamic> decoded = jsonDecode(jsonString);
+    return decoded.map((item) => Map<String, String>.from(item)).toList();
+  }
+
+  Future<void> clearChatHistory() async {
+    _checkInit();
+    await _prefs!.remove(_kChatHistory);
+  }
+
+  // --- GENERAL ---
   Future<void> clearAllData() async {
     _checkInit();
     await _prefs!.clear();

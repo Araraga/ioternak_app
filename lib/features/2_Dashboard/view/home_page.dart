@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/storage_service.dart';
+import '../../../core/services/api_service.dart'; // Import API Service
 
 import '../cubit/dashboard_cubit.dart';
 import '../cubit/dashboard_state.dart';
@@ -26,8 +27,54 @@ class HomePage extends StatelessWidget {
   }
 }
 
-class HomeView extends StatelessWidget {
+class HomeView extends StatefulWidget {
   const HomeView({super.key});
+
+  @override
+  State<HomeView> createState() => _HomeViewState();
+}
+
+class _HomeViewState extends State<HomeView> {
+  @override
+  void initState() {
+    super.initState();
+    // Panggil fungsi sinkronisasi saat halaman dimuat
+    _syncDevices();
+  }
+
+  /// Fungsi untuk mengambil data device dari server dan menyimpannya ke lokal
+  /// Ini memperbaiki masalah device hilang saat logout/login
+  Future<void> _syncDevices() async {
+    try {
+      final storage = context.read<StorageService>();
+      final api = context.read<ApiService>();
+      final userId = storage.getUserIdFromDB();
+
+      if (userId != null) {
+        // 1. Ambil data terbaru dari server
+        final devices = await api.getMyDevices(userId);
+
+        // 2. Simpan kembali ke Storage Lokal (Restore Session)
+        bool dataChanged = false;
+        for (var device in devices) {
+          if (device['type'] == 'sensor') {
+            await storage.saveSensorId(device['device_id']);
+            dataChanged = true;
+          } else if (device['type'] == 'feeder') {
+            await storage.savePakanId(device['device_id']);
+            dataChanged = true;
+          }
+        }
+
+        // 3. Refresh Tampilan Dashboard jika ada data baru
+        if (dataChanged && mounted) {
+          context.read<DashboardCubit>().checkDevices();
+        }
+      }
+    } catch (e) {
+      debugPrint("Sync Error: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +106,8 @@ class HomeView extends StatelessWidget {
                   )
                   .then((_) {
                     context.read<DashboardCubit>().checkDevices();
+                    // Sync ulang setelah tambah alat
+                    _syncDevices();
                   });
             },
           ),

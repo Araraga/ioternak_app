@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart'; // Akses ke ApiService
+import 'package:flutter/services.dart'; // Untuk format input nomor HP
 import '../../../core/constants/app_colors.dart';
-import '../../../core/services/storage_service.dart';
 import '../../../core/services/api_service.dart';
-import '../../2_dashboard/view/home_page.dart';
+import 'verification_page.dart'; // Pastikan file ini ada (halaman input OTP)
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -15,8 +14,11 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
+
+  // Controller Input Data
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+
   bool _isLoading = false;
 
   @override
@@ -26,7 +28,9 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
-  void _submitRegister() async {
+  // --- LOGIKA UTAMA: TOMBOL DAFTAR ---
+  void _handleDaftarButton() async {
+    // 1. Cek validitas form UI
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
@@ -34,31 +38,46 @@ class _RegisterPageState extends State<RegisterPage> {
     try {
       final api = context.read<ApiService>();
 
-      final result = await api.registerUser(
-        _nameController.text.trim(),
-        _phoneController.text.trim(),
-      );
+      // 2. Request OTP ke Backend
+      // Jika nomor sudah terdaftar, ApiService akan melempar Exception error
+      final isSent = await api.requestOtp(_phoneController.text.trim());
 
-      final userIdDB = result['user']['user_id'].toString();
+      if (isSent) {
+        if (!mounted) return;
 
-      final storage = context.read<StorageService>();
-      await storage.saveUserProfile(
-        _nameController.text.trim(),
-        _phoneController.text.trim(),
-      );
-      await storage.saveUserIdFromDB(userIdDB);
+        // Tampilkan pesan sukses
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Kode OTP berhasil dikirim ke WhatsApp!"),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
 
+        // 3. Pindah ke Halaman Verifikasi (Hanya jika sukses kirim OTP)
+        // Kita bawa data Nama & HP untuk disimpan nanti setelah verifikasi OTP selesai
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => VerificationPage(
+              fullName: _nameController.text.trim(),
+              phone: _phoneController.text.trim(),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
       if (!mounted) return;
 
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const HomePage()),
-        (route) => false,
-      );
-    } catch (e) {
+      // Bersihkan pesan error dari teks "Exception:" agar lebih rapi
+      String errorMessage = e.toString().replaceAll("Exception:", "").trim();
+
+      // Tampilkan Error (Misal: "Nomor ini sudah terdaftar")
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Gagal: ${e.toString().replaceAll("Exception:", "")}"),
+          content: Text(errorMessage),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4), // Tampil agak lama biar terbaca
         ),
       );
     } finally {
@@ -69,7 +88,8 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor:
+          AppColors.background, // Pastikan warna ini ada di constants Anda
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -83,6 +103,7 @@ class _RegisterPageState extends State<RegisterPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // --- LOGO APLIKASI ---
                 SizedBox(
                   height: 100,
                   child: Image.asset(
@@ -98,6 +119,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
                 const SizedBox(height: 24),
 
+                // --- HEADER TEKS ---
                 const Text(
                   "Buat Akun Baru",
                   textAlign: TextAlign.center,
@@ -115,9 +137,11 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 const SizedBox(height: 40),
 
+                // --- INPUT NAMA ---
                 TextFormField(
                   controller: _nameController,
-                  textCapitalization: TextCapitalization.words,
+                  textCapitalization:
+                      TextCapitalization.words, // Kapital tiap kata
                   decoration: InputDecoration(
                     labelText: "Nama Lengkap",
                     prefixIcon: const Icon(Icons.person_outline),
@@ -129,10 +153,13 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 const SizedBox(height: 20),
 
+                // --- INPUT NOMOR HP ---
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                  ], // Hanya angka
                   decoration: InputDecoration(
                     labelText: "Nomor WhatsApp",
                     hintText: "Contoh: 08123456789",
@@ -140,13 +167,21 @@ class _RegisterPageState extends State<RegisterPage> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
+                    helperText: "Pastikan nomor aktif di WhatsApp",
                   ),
-                  validator: (v) => v!.length < 10 ? "Nomor tidak valid" : null,
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return "Nomor wajib diisi";
+                    if (v.length < 10)
+                      return "Nomor tidak valid (min 10 digit)";
+                    return null;
+                  },
                 ),
+
                 const SizedBox(height: 40),
 
+                // --- TOMBOL LANJUT ---
                 ElevatedButton(
-                  onPressed: _isLoading ? null : _submitRegister,
+                  onPressed: _isLoading ? null : _handleDaftarButton,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -161,13 +196,14 @@ class _RegisterPageState extends State<RegisterPage> {
                           child: CircularProgressIndicator(color: Colors.white),
                         )
                       : const Text(
-                          "Daftar Sekarang",
+                          "Lanjut Verifikasi",
                           style: TextStyle(fontSize: 18, color: Colors.white),
                         ),
                 ),
 
                 const SizedBox(height: 20),
 
+                // --- LINK MASUK (LOGIN) ---
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -177,7 +213,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                     GestureDetector(
                       onTap: () =>
-                          Navigator.pop(context), // Kembali ke halaman Login
+                          Navigator.pop(context), // Kembali ke Login Page
                       child: const Text(
                         "Masuk",
                         style: TextStyle(

@@ -17,12 +17,23 @@ class SensorDataCubit extends Cubit<SensorDataState> {
        super(SensorDataInitial()) {
     fetchSensorData();
 
+    // Timer berjalan setiap 5 detik
     _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      if (state is! SensorDataLoading) {
+      // Pastikan cubit belum ditutup sebelum memanggil fungsi
+      if (!isClosed && state is! SensorDataLoading) {
         fetchSensorData();
       }
     });
   }
+
+  // --- PERBAIKAN UTAMA: Override emit agar aman ---
+  @override
+  void emit(SensorDataState state) {
+    if (!isClosed) {
+      super.emit(state);
+    }
+  }
+  // ------------------------------------------------
 
   @override
   Future<void> close() {
@@ -31,6 +42,9 @@ class SensorDataCubit extends Cubit<SensorDataState> {
   }
 
   Future<void> fetchSensorData() async {
+    // Cek di awal fungsi
+    if (isClosed) return;
+
     try {
       if (state is SensorDataInitial) {
         emit(SensorDataLoading());
@@ -38,15 +52,21 @@ class SensorDataCubit extends Cubit<SensorDataState> {
 
       final sensorId = _storageService.getSensorId();
       if (sensorId == null || sensorId.isEmpty) {
-        emit(
-          const SensorDataError(
-            'ID Perangkat Sensor tidak ditemukan di Storage.',
-          ),
-        );
+        if (!isClosed) {
+          emit(
+            const SensorDataError(
+              'ID Perangkat Sensor tidak ditemukan di Storage.',
+            ),
+          );
+        }
         return;
       }
 
+      // Proses Asynchronous (menunggu server)
       final data = await _apiService.getSensorData(sensorId);
+
+      // Cek lagi apakah cubit ditutup saat menunggu data
+      if (isClosed) return;
 
       if (data is List && data.isNotEmpty) {
         emit(SensorDataLoaded(data));
@@ -54,7 +74,9 @@ class SensorDataCubit extends Cubit<SensorDataState> {
         emit(const SensorDataError('Belum ada data terekam untuk ID ini.'));
       }
     } catch (e) {
-      emit(SensorDataError(e.toString()));
+      if (!isClosed) {
+        emit(SensorDataError(e.toString()));
+      }
     }
   }
 }

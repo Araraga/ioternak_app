@@ -45,6 +45,12 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
+  animated_notch_bottom_bar: ^1.0.0
+
+  circle_nav_bar: ^2.0.0
+
+  pinput: ^5.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

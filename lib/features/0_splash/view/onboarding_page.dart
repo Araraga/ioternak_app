@@ -15,24 +15,25 @@ class _OnboardingPageState extends State<OnboardingPage> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
+  // --- [PERUBAHAN] Ganti Icon dengan Path Gambar ---
   final List<Map<String, dynamic>> _onboardingData = [
     {
       "title": "Ekosistem Alat Pintar\nKandang Ternak",
       "desc":
           "Hubungkan berbagai perangkat canggih mulai dari sensor lingkungan hingga pakan otomatis dalam satu aplikasi yang terintegrasi.",
-      "icon": Icons.hub,
+      "image": "assets/images/slide1.png", // Ganti Icon jadi Image
     },
     {
       "title": "Monitor dan Kontrol\nKandang Secara Realtime",
       "desc":
           "Pantau suhu, kelembapan, dan gas amonia detik ini juga. Atur jadwal pakan dari mana saja tanpa perlu datang ke kandang.",
-      "icon": Icons.touch_app,
+      "image": "assets/images/slide2.png",
     },
     {
       "title": "Tingkatkan Kualitas dan\nPenghasilan Kandang",
       "desc":
           "Ciptakan lingkungan ideal untuk pertumbuhan ternak yang sehat, kurangi risiko kematian, dan maksimalkan keuntungan panen Anda.",
-      "icon": Icons.monetization_on,
+      "image": "assets/images/slide3.png",
     },
   ];
 
@@ -65,19 +66,32 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(30),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            data['icon'],
-                            size: 100,
-                            color: AppColors.primary,
+                        // --- [PERUBAHAN] Tampilkan Gambar ---
+                        // Tidak perlu Container bulat lagi jika gambarnya ilustrasi penuh
+                        SizedBox(
+                          height: 250, // Atur tinggi gambar agar proporsional
+                          child: Image.asset(
+                            data['image'],
+                            fit: BoxFit.contain,
+                            // Placeholder jika gambar belum ada
+                            errorBuilder: (ctx, err, stack) => Container(
+                              height: 150,
+                              width: 150,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withOpacity(0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.image_not_supported,
+                                size: 60,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
                           ),
                         ),
+
                         const SizedBox(height: 40),
+
                         Text(
                           data['title'],
                           textAlign: TextAlign.center,
@@ -104,11 +118,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
               ),
             ),
 
+            // Bagian Bawah (Dots & Tombol)
             Padding(
               padding: const EdgeInsets.fromLTRB(32, 0, 32, 48),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Indikator Dots
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(
@@ -130,6 +146,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
                   const SizedBox(height: 32),
 
+                  // Tombol Mulai (Hanya di slide terakhir)
                   if (_currentPage == _onboardingData.length - 1)
                     SizedBox(
                       width: double.infinity,
@@ -153,7 +170,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       ),
                     )
                   else
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 48), // Placeholder jarak
                 ],
               ),
             ),

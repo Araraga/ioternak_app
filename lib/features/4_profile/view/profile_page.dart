@@ -5,7 +5,6 @@ import '../../../core/services/api_service.dart';
 import '../../../core/services/storage_service.dart';
 import '../../../core/widgets/app_dialog.dart';
 import '../cubit/profile_cubit.dart';
-
 import '../../0_splash/view/onboarding_page.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -71,6 +70,7 @@ class _ProfileViewState extends State<ProfileView> {
       textConfirm: "Keluar",
       confirmColor: Colors.red,
       onConfirm: () async {
+        // Logout via Cubit (Pastikan cubit memanggil storage.clearAllData())
         await context.read<ProfileCubit>().logout();
 
         if (mounted) {
