@@ -23,17 +23,30 @@ class SensorDetailPage extends StatelessWidget {
   }
 }
 
-class SensorDetailView extends StatelessWidget {
+class SensorDetailView extends StatefulWidget {
   const SensorDetailView({super.key});
 
-  void _deleteDevice(BuildContext context) async {
+  @override
+  State<SensorDetailView> createState() => _SensorDetailViewState();
+}
+
+class _SensorDetailViewState extends State<SensorDetailView> {
+  String _formatValue(dynamic value, int decimalPlaces) {
+    if (value == null) return '--';
+    if (value.toString().toLowerCase() == 'null') return '--';
+    final number = double.tryParse(value.toString());
+    if (number != null) {
+      return number.toStringAsFixed(decimalPlaces);
+    }
+    return '--';
+  }
+
+  void _deleteDevice(BuildContext context) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("Hapus Sensor?"),
-        content: const Text(
-          "Alat akan dihapus dari akun Anda. Anda harus mengklaim ulang jika ingin menggunakannya lagi.",
-        ),
+        content: const Text("Alat akan dihapus dari akun Anda."),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -42,7 +55,6 @@ class SensorDetailView extends StatelessWidget {
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
-
               showDialog(
                 context: context,
                 barrierDismissible: false,
@@ -53,35 +65,24 @@ class SensorDetailView extends StatelessWidget {
               try {
                 final storage = context.read<StorageService>();
                 final api = context.read<ApiService>();
-
                 final deviceId = storage.getSensorId();
                 final userId = storage.getUserIdFromDB();
 
                 if (deviceId != null && userId != null) {
                   await api.releaseDevice(deviceId, userId);
                 }
-
                 await storage.clearSensorId();
 
                 if (context.mounted) {
-                  Navigator.pop(context);
-                  Navigator.of(context).pop();
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Sensor berhasil dihapus."),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
+                  Navigator.pop(context); // Tutup loading
+                  Navigator.pop(context); // Keluar halaman
                 }
               } catch (e) {
+                if (context.mounted) Navigator.pop(context);
                 if (context.mounted) {
-                  Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(
-                        "Gagal: ${e.toString().replaceAll('Exception:', '')}",
-                      ),
+                      content: Text("Gagal: ${e.toString()}"),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -93,16 +94,6 @@ class SensorDetailView extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _formatValue(dynamic value, int decimalPlaces) {
-    if (value == null) return '--';
-    if (value is num) return value.toStringAsFixed(decimalPlaces);
-    if (value is String) {
-      final number = double.tryParse(value);
-      if (number != null) return number.toStringAsFixed(decimalPlaces);
-    }
-    return '--';
   }
 
   Widget _buildSensorInfo({
@@ -133,12 +124,14 @@ class SensorDetailView extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            Text(
-              unit,
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.textSecondary,
-                height: 1.8,
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                unit,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
               ),
             ),
           ],
@@ -150,11 +143,12 @@ class SensorDetailView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
       backgroundColor: AppColors.background,
+      extendBodyBehindAppBar: false,
+
       appBar: AppBar(
         title: const Text(
-          'Ioternak Smart Sensor',
+          'Detail Sensor',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.transparent,
@@ -162,17 +156,20 @@ class SensorDetailView extends StatelessWidget {
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.black),
         actions: [
+          // 1. TOMBOL REFRESH DIHAPUS (Sesuai Permintaan)
+
+          // 2. TOMBOL DELETE
           IconButton(
             icon: const Icon(
               Icons.delete_outline,
               color: AppColors.statusDanger,
             ),
-            tooltip: "Hapus Alat",
             onPressed: () => _deleteDevice(context),
           ),
           const SizedBox(width: 8),
         ],
       ),
+
       body: BlocBuilder<SensorDataCubit, SensorDataState>(
         builder: (context, state) {
           if (state is SensorDataLoading) {
@@ -198,17 +195,15 @@ class SensorDetailView extends StatelessWidget {
                 : {};
 
             final rawGas = latestData['amonia'] ?? latestData['gas_ppm'];
+
             final ammoniaStr = _formatValue(rawGas, 1);
             final tempStr = _formatValue(latestData['temperature'], 1);
             final humStr = _formatValue(latestData['humidity'], 0);
 
-            double gasVal = double.tryParse(ammoniaStr) ?? 0;
-            double tempVal = double.tryParse(tempStr) ?? 0;
+            double gasVal = double.tryParse(ammoniaStr) ?? 0.0;
+            bool isSafe = (gasVal < 20.0);
 
-            bool isSafe = (gasVal < 20.0) && (tempVal < 33.0);
-            String statusText = isSafe
-                ? "Kondisi Kandang BAIK"
-                : "Kondisi Kandang BURUK";
+            String statusText = isSafe ? "Kondisi Aman" : "Kondisi Buruk";
             Color statusColor = isSafe
                 ? AppColors.statusGood
                 : AppColors.statusDanger;
@@ -217,16 +212,14 @@ class SensorDetailView extends StatelessWidget {
                 : Icons.sentiment_very_dissatisfied;
 
             return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
               child: Column(
                 children: [
-                  SizedBox(
-                    height: MediaQuery.of(context).padding.top + kToolbarHeight,
-                  ),
-
+                  // IMAGE
                   Center(
                     child: Container(
                       height: 130,
-                      margin: const EdgeInsets.only(bottom: 16, top: 10),
+                      margin: const EdgeInsets.only(bottom: 24),
                       child: Image.asset(
                         'assets/images/alatsensor.png',
                         fit: BoxFit.contain,
@@ -239,12 +232,16 @@ class SensorDetailView extends StatelessWidget {
                     ),
                   ),
 
+                  // SENSOR VALUES CARD (TANPA SHADOW)
                   Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16),
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 24,
+                      horizontal: 16,
+                    ),
                     decoration: BoxDecoration(
-                      color: AppColors.card,
-                      borderRadius: BorderRadius.circular(16),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      // Ganti Shadow dengan Border tipis
                       border: Border.all(color: Colors.grey.withOpacity(0.2)),
                     ),
                     child: Row(
@@ -287,46 +284,69 @@ class SensorDetailView extends StatelessWidget {
 
                   const SizedBox(height: 24),
 
+                  // STATUS CARD (TANPA SHADOW)
                   Container(
                     width: double.infinity,
-                    margin: const EdgeInsets.symmetric(horizontal: 16),
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 24,
-                      horizontal: 16,
-                    ),
+                    padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: AppColors.card,
-                      borderRadius: BorderRadius.circular(16),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      // Ganti Shadow dengan Border tipis
                       border: Border.all(color: Colors.grey.withOpacity(0.2)),
                     ),
                     child: Column(
                       children: [
-                        Icon(statusIcon, size: 80, color: statusColor),
-                        const SizedBox(height: 16),
+                        Icon(statusIcon, size: 60, color: statusColor),
+                        const SizedBox(height: 12),
                         Text(
                           statusText,
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: 22,
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
                             color: statusColor,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 4),
                         const Text(
-                          "Berdasarkan parameter suhu, kelembapan, & gas",
-                          style: TextStyle(color: AppColors.textSecondary),
+                          "Indikator real-time",
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ),
                   ),
+
+                  const SizedBox(height: 24),
+
+                  // CHART SECTION
+                  if (sensorDataList.isNotEmpty)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Grafik Riwayat",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        AmmoniaChart(sensorData: sensorDataList),
+                      ],
+                    ),
 
                   const SizedBox(height: 40),
                 ],
               ),
             );
           }
-          return const SizedBox.shrink();
+          return const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          );
         },
       ),
     );

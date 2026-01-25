@@ -72,7 +72,8 @@ class SensorCard extends StatelessWidget {
       create: (context) => SensorDataCubit(
         apiService: context.read<ApiService>(),
         storageService: context.read<StorageService>(),
-      ),
+      )..fetchSensorData(), // <--- PERBAIKAN 1: Panggil fetch data di sini!
+
       child: Card(
         color: AppColors.card,
         elevation: 0,
@@ -83,10 +84,8 @@ class SensorCard extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const SensorDetailPage()),
-            ).then((_) {
+            ).then((_) async {
               if (context.mounted) {
-                context.read<SensorDataCubit>().fetchSensorData();
-
                 context.read<DashboardCubit>().checkDevices();
               }
             });
@@ -116,11 +115,14 @@ class SensorCard extends StatelessWidget {
 
                 if (state is SensorDataLoaded) {
                   final List<dynamic> sensorDataList = state.sensorDataList;
+
+                  // Ambil data pertama (Terbaru) karena API sort DESC
                   final Map<String, dynamic> latestData =
                       sensorDataList.isNotEmpty
                       ? sensorDataList.first as Map<String, dynamic>? ?? {}
                       : {};
 
+                  // Handle 'amonia' dari backend atau 'gas_ppm'
                   final rawGas = latestData['amonia'] ?? latestData['gas_ppm'];
                   final ammonia = _formatValue(rawGas, 1);
                   final temperature = _formatValue(

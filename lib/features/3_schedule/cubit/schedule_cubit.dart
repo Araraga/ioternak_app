@@ -10,34 +10,52 @@ class ScheduleCubit extends Cubit<ScheduleState> {
   ScheduleCubit({
     required ApiService apiService,
     required StorageService storageService,
-  })  : _apiService = apiService,
-        _storageService = storageService,
-        super(ScheduleInitial());
+  }) : _apiService = apiService,
+       _storageService = storageService,
+       super(ScheduleInitial());
 
   Future<void> fetchSchedule() async {
+    // Cek 1: Jangan jalan jika cubit sudah ditutup
+    if (isClosed) return;
+
     try {
       emit(ScheduleLoading());
+
       final pakanId = _storageService.getPakanId();
 
       if (pakanId == null || pakanId.isEmpty) {
-        emit(const ScheduleError('ID Perangkat Pakan tidak ditemukan.'));
+        if (!isClosed)
+          emit(const ScheduleError('ID Perangkat Pakan tidak ditemukan.'));
         return;
       }
 
       final data = await _apiService.getSchedule(pakanId);
+
+      // KONVERSI DATA
+      // Pastikan handling error jika format data tidak sesuai
       final List<String> schedules = (data['times'] as List<dynamic>)
           .map((time) => time.toString())
           .toList();
 
-      emit(ScheduleLoaded(schedules));
+      // Cek 2: Cek lagi setelah proses async (await) selesai
+      if (!isClosed) {
+        emit(ScheduleLoaded(schedules));
+      }
     } catch (e) {
-      emit(ScheduleError(e.toString()));
+      // Cek 3: Cek sebelum emit error
+      if (!isClosed) {
+        emit(ScheduleError(e.toString()));
+      }
     }
   }
 
   Future<void> updateSchedule(List<String> newSchedules) async {
+    if (isClosed) return;
+
     final currentState = state;
     List<String> currentData = [];
+
+    // Ambil data lama buat backup/optimistic UI
     if (currentState is ScheduleLoaded) {
       currentData = currentState.schedules;
     } else if (currentState is ScheduleUpdateSuccess) {
@@ -49,19 +67,24 @@ class ScheduleCubit extends Cubit<ScheduleState> {
 
       final pakanId = _storageService.getPakanId();
       if (pakanId == null || pakanId.isEmpty) {
-        emit(const ScheduleError('ID Perangkat Pakan tidak ditemukan.'));
+        if (!isClosed)
+          emit(const ScheduleError('ID Perangkat Pakan tidak ditemukan.'));
         return;
       }
 
-      final Map<String, dynamic> scheduleData = {
-        'times': newSchedules,
-      };
+      final Map<String, dynamic> scheduleData = {'times': newSchedules};
 
       await _apiService.updateSchedule(pakanId, scheduleData);
 
-      emit(ScheduleUpdateSuccess(newSchedules));
+      // Cek 4: Cek setelah await update selesai
+      if (!isClosed) {
+        emit(ScheduleUpdateSuccess(newSchedules));
+      }
     } catch (e) {
-      emit(ScheduleError(e.toString()));
+      // Cek 5: Cek error
+      if (!isClosed) {
+        emit(ScheduleError(e.toString()));
+      }
     }
   }
 }

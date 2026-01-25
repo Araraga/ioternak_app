@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:bloc/bloc.dart';
 import 'sensor_data_state.dart';
 import '../../../core/services/api_service.dart';
@@ -15,25 +16,20 @@ class SensorDataCubit extends Cubit<SensorDataState> {
   }) : _apiService = apiService,
        _storageService = storageService,
        super(SensorDataInitial()) {
-    fetchSensorData();
-
-    // Timer berjalan setiap 5 detik
+    // Auto-refresh setiap 5 detik
     _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      // Pastikan cubit belum ditutup sebelum memanggil fungsi
       if (!isClosed && state is! SensorDataLoading) {
         fetchSensorData();
       }
     });
   }
 
-  // --- PERBAIKAN UTAMA: Override emit agar aman ---
   @override
   void emit(SensorDataState state) {
     if (!isClosed) {
       super.emit(state);
     }
   }
-  // ------------------------------------------------
 
   @override
   Future<void> close() {
@@ -42,7 +38,6 @@ class SensorDataCubit extends Cubit<SensorDataState> {
   }
 
   Future<void> fetchSensorData() async {
-    // Cek di awal fungsi
     if (isClosed) return;
 
     try {
@@ -52,30 +47,29 @@ class SensorDataCubit extends Cubit<SensorDataState> {
 
       final sensorId = _storageService.getSensorId();
       if (sensorId == null || sensorId.isEmpty) {
-        if (!isClosed) {
-          emit(
-            const SensorDataError(
-              'ID Perangkat Sensor tidak ditemukan di Storage.',
-            ),
-          );
-        }
+        if (!isClosed)
+          emit(const SensorDataError('ID Sensor tidak ditemukan.'));
         return;
       }
 
-      // Proses Asynchronous (menunggu server)
-      final data = await _apiService.getSensorData(sensorId);
+      // Ambil data yang sudah diolah jadi rata-rata harian (Max 7 item)
+      final processedData = await _apiService.getSensorData(sensorId);
 
-      // Cek lagi apakah cubit ditutup saat menunggu data
       if (isClosed) return;
 
-      if (data is List && data.isNotEmpty) {
-        emit(SensorDataLoaded(data));
+      if (processedData is List && processedData.isNotEmpty) {
+        // Langsung emit karena sudah matang
+        emit(SensorDataLoaded(processedData));
       } else {
-        emit(const SensorDataError('Belum ada data terekam untuk ID ini.'));
+        emit(const SensorDataLoaded([]));
       }
     } catch (e) {
       if (!isClosed) {
-        emit(SensorDataError(e.toString()));
+        if (state is SensorDataInitial || state is SensorDataLoading) {
+          emit(SensorDataError("Gagal memuat data: $e"));
+        } else {
+          debugPrint("Background fetch error: $e");
+        }
       }
     }
   }

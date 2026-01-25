@@ -32,7 +32,9 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: false,
+      // Wajib true agar menyatu
+      extendBody: true,
+      resizeToAvoidBottomInset: false,
 
       body: PageView(
         controller: _pageController,
@@ -54,26 +56,46 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
           _pageController.jumpToPage(index);
         },
 
+        // 1. ICON AKTIF (DALAM LINGKARAN)
+        // Biarkan normal, dia akan otomatis di tengah lingkaran
         activeIcons: const [
           Icon(Icons.home, color: Colors.white),
           Icon(Icons.chat_bubble, color: Colors.white),
           Icon(Icons.person, color: Colors.white),
         ],
-        inactiveIcons: const [
-          Icon(Icons.home_outlined, color: Colors.grey),
-          Icon(Icons.chat_bubble_outline, color: Colors.grey),
-          Icon(Icons.person_outline, color: Colors.grey),
+
+        // 2. ICON TIDAK AKTIF (DI BAR PUTIH)
+        // Gunakan Transform.translate agar naik TANPA merusak layout
+        inactiveIcons: [
+          Transform.translate(
+            offset: const Offset(0, -10), // Minus artinya geser ke ATAS
+            child: const Icon(Icons.home_outlined, color: Colors.grey),
+          ),
+          Transform.translate(
+            offset: const Offset(0, -10),
+            child: const Icon(Icons.chat_bubble_outline, color: Colors.grey),
+          ),
+          Transform.translate(
+            offset: const Offset(0, -10),
+            child: const Icon(Icons.person_outline, color: Colors.grey),
+          ),
         ],
 
         color: Colors.white,
         circleColor: AppColors.primary,
-        height: 60,
-        circleWidth: 60,
-        padding: const EdgeInsets.only(left: 0, right: 0, bottom: 20),
 
+        // Atur tinggi secukupnya. 70 biasanya pas.
+        height: 85,
+        circleWidth: 60,
+
+        // 3. INI KUNCINYA AGAR NEMPEL KE BAWAH (LANTAI)
+        // Jangan diubah, wajib zero.
+        padding: EdgeInsets.zero,
+
+        // Atur sudut lengkungan
         cornerRadius: const BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
+          topLeft: Radius.circular(30),
+          topRight: Radius.circular(30),
         ),
 
         shadowColor: Colors.grey.withOpacity(0.3),

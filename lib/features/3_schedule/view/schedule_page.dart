@@ -60,7 +60,6 @@ class _ScheduleViewState extends State<ScheduleView> {
                     ),
                   ),
                   const SizedBox(height: 20),
-
                   SizedBox(
                     height: 180,
                     child: CupertinoTheme(
@@ -83,9 +82,7 @@ class _ScheduleViewState extends State<ScheduleView> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 24),
-
                   Row(
                     children: [
                       Expanded(
@@ -113,18 +110,15 @@ class _ScheduleViewState extends State<ScheduleView> {
                           onPressed: () {
                             final String formattedTime =
                                 '${tempPickedTime.hour.toString().padLeft(2, '0')}:${tempPickedTime.minute.toString().padLeft(2, '0')}';
-
                             setState(() {
                               if (!_currentSchedules.contains(formattedTime)) {
                                 _currentSchedules.add(formattedTime);
                                 _currentSchedules.sort();
                               }
                             });
-
                             context.read<ScheduleCubit>().updateSchedule(
                               _currentSchedules,
                             );
-
                             Navigator.pop(context);
                           },
                           style: ElevatedButton.styleFrom(
@@ -159,9 +153,7 @@ class _ScheduleViewState extends State<ScheduleView> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("Hapus Alat Pakan?"),
-        content: const Text(
-          "Alat akan dihapus dari akun Anda. Anda harus mengklaim ulang jika ingin menggunakannya lagi.",
-        ),
+        content: const Text("Alat akan dihapus dari akun Anda."),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -170,7 +162,6 @@ class _ScheduleViewState extends State<ScheduleView> {
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
-
               showDialog(
                 context: context,
                 barrierDismissible: false,
@@ -181,35 +172,24 @@ class _ScheduleViewState extends State<ScheduleView> {
               try {
                 final storage = context.read<StorageService>();
                 final api = context.read<ApiService>();
-
                 final deviceId = storage.getPakanId();
                 final userId = storage.getUserIdFromDB();
 
                 if (deviceId != null && userId != null) {
                   await api.releaseDevice(deviceId, userId);
                 }
-
                 await storage.clearPakanId();
 
                 if (context.mounted) {
                   Navigator.pop(context);
                   Navigator.of(context).pop();
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Alat berhasil dihapus."),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
                 }
               } catch (e) {
                 if (context.mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(
-                        "Gagal: ${e.toString().replaceAll('Exception:', '')}",
-                      ),
+                      content: Text("Gagal: ${e.toString()}"),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -293,7 +273,6 @@ class _ScheduleViewState extends State<ScheduleView> {
                 SizedBox(
                   height: MediaQuery.of(context).padding.top + kToolbarHeight,
                 ),
-
                 Center(
                   child: Container(
                     height: 150,
@@ -310,7 +289,6 @@ class _ScheduleViewState extends State<ScheduleView> {
                     ),
                   ),
                 ),
-
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 24.0),
                   child: Text(
@@ -322,9 +300,7 @@ class _ScheduleViewState extends State<ScheduleView> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 16),
-
                 Expanded(child: _buildBody(context, state)),
               ],
             ),
@@ -340,7 +316,6 @@ class _ScheduleViewState extends State<ScheduleView> {
         child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
-
     if (state is ScheduleError && !_isDataLoaded) {
       return Center(
         child: SensorErrorWidget(
@@ -384,9 +359,12 @@ class _ScheduleViewState extends State<ScheduleView> {
         return Card(
           color: AppColors.card,
           margin: const EdgeInsets.only(bottom: 12),
-          elevation: 2,
+          // HAPUS ELEVATION (SHADOW)
+          elevation: 0,
+          // GANTI DENGAN BORDER
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.grey.withOpacity(0.2)),
           ),
           child: ListTile(
             contentPadding: const EdgeInsets.symmetric(
