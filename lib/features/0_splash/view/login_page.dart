@@ -42,7 +42,7 @@ class _LoginPageState extends State<LoginPage> {
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
           builder: (_) => const MainNavigationPage(),
-        ), // <--- GANTI JADI INI
+        ),
         (route) => false,
       );
     } catch (e) {
@@ -72,7 +72,7 @@ class _LoginPageState extends State<LoginPage> {
                 SizedBox(
                   height: 120,
                   child: Image.asset(
-                    'assets/images/logo.png',
+                    'assets/images/icon.png',
                     fit: BoxFit.contain,
                     errorBuilder: (ctx, err, stack) => const Icon(
                       Icons.image_not_supported,

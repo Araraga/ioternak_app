@@ -71,7 +71,7 @@ class _PakanCardView extends StatelessWidget {
                 ],
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 10),
 
               const Text(
                 'Jadwal pakan otomatis aktif:',

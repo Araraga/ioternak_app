@@ -5,14 +5,10 @@ import 'package:intl/intl.dart';
 import '../constants/api_endpoints.dart';
 
 class ApiService {
-  // ===============================================================
-  // 1. LOGIKA PROSES DATA (HYBRID: REALTIME + AVERAGE)
-  // ===============================================================
   static List<Map<String, dynamic>> _processSensorData(String responseBody) {
     final decoded = jsonDecode(responseBody);
     List<dynamic> fullList = [];
 
-    // A. Normalisasi Struktur JSON
     if (decoded is List) {
       fullList = decoded;
     } else if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
@@ -21,11 +17,8 @@ class ApiService {
 
     if (fullList.isEmpty) return [];
 
-    // B. AMBIL DATA REALTIME TERAKHIR (Data Paling Ujung)
-    // Asumsi: Server mengirim data urut ASC (Lama -> Baru), jadi .last adalah terbaru
     var latestRaw = fullList.last;
 
-    // Parsing Nilai Realtime (Untuk ditampilkan di Gauge/Teks Utama)
     double latestGas =
         double.tryParse(
           (latestRaw['amonia'] ?? latestRaw['gas_ppm']).toString(),
@@ -36,7 +29,6 @@ class ApiService {
     double latestHum = double.tryParse(latestRaw['humidity'].toString()) ?? 0.0;
     String latestDateStr = latestRaw['timestamp'] ?? latestRaw['created_at'];
 
-    // C. HITUNG RATA-RATA HARIAN (Untuk Grafik History)
     Map<String, List<double>> gasMap = {};
     Map<String, List<double>> tempMap = {};
     Map<String, List<double>> humMap = {};
@@ -72,7 +64,6 @@ class ApiService {
       }
     }
 
-    // D. SUSUN HASIL RATA-RATA
     List<Map<String, dynamic>> finalStats = [];
     var sortedKeys = gasMap.keys.toList()..sort();
 
@@ -93,18 +84,16 @@ class ApiService {
       finalStats.add({
         'created_at': key,
         'timestamp': key,
-        'amonia': avgGas, // Key standard UI
-        'temperature': avgTemp, // Key standard UI
-        'humidity': avgHum, // Key standard UI
-        'gas': avgGas, // Key chart
-        'temp': avgTemp, // Key chart
-        'hum': avgHum, // Key chart
+        'amonia': avgGas,
+        'temperature': avgTemp,
+        'humidity': avgHum,
+        'gas': avgGas,
+        'temp': avgTemp,
+        'hum': avgHum,
         'date': key,
       });
     }
 
-    // E. BALIK URUTAN & INJECT REALTIME DATA
-    // Kita balik (.reversed) agar Index 0 adalah Hari Ini (Terbaru)
     List<Map<String, dynamic>> result = List<Map<String, dynamic>>.from(
       finalStats.reversed,
     );
@@ -115,19 +104,14 @@ class ApiService {
         'yyyy-MM-dd',
       ).format(DateTime.parse(latestDateStr));
 
-      // Jika data terakhir di list adalah hari ini, TIMPA rata-ratanya dengan DATA REALTIME
-      // Ini agar dashboard menampilkan angka saat ini, bukan rata-rata seharian
       if (result[0]['date'] == dataKey) {
         result[0]['amonia'] = latestGas;
         result[0]['temperature'] = latestTemp;
         result[0]['humidity'] = latestHum;
-        // Update data chart juga agar titik terakhir akurat
         result[0]['gas'] = latestGas;
         result[0]['temp'] = latestTemp;
         result[0]['hum'] = latestHum;
       } else {
-        // Jika list hari ini belum ada (misal data server hari kemarin semua),
-        // Sisipkan data realtime di paling atas sebagai data baru
         result.insert(0, {
           'created_at': latestDateStr,
           'amonia': latestGas,
@@ -144,17 +128,11 @@ class ApiService {
     return result;
   }
 
-  // Parser helper sederhana
   static Map<String, dynamic> _parseJsonMap(String responseBody) {
     final result = jsonDecode(responseBody);
     return result is Map<String, dynamic> ? result : {};
   }
 
-  // ===============================================================
-  // 2. HTTP REQUEST METHODS
-  // ===============================================================
-
-  // GET SENSOR DATA (Memanggil fungsi Hybrid di atas)
   Future<dynamic> getSensorData(String deviceId) async {
     try {
       final url = Uri.parse(ApiEndpoints.getSensorData(deviceId));
@@ -169,7 +147,6 @@ class ApiService {
     }
   }
 
-  // POST DATA (Generic)
   Future<Map<String, dynamic>> post(
     String endpoint,
     Map<String, dynamic> body,
@@ -195,8 +172,6 @@ class ApiService {
       throw Exception('Error API: $e');
     }
   }
-
-  // --- AUTH & USER MANAGEMENT ---
 
   Future<bool> requestOtp(String phone) async {
     final url = Uri.parse(ApiEndpoints.requestOtp);
@@ -243,8 +218,6 @@ class ApiService {
     throw Exception(result['message'] ?? 'Gagal Login');
   }
 
-  // --- DEVICE MANAGEMENT ---
-
   Future<List<dynamic>> getMyDevices(String userId) async {
     final url = Uri.parse(ApiEndpoints.getMyDevices(userId));
     try {
@@ -259,11 +232,32 @@ class ApiService {
     }
   }
 
-  Future<dynamic> getSchedule(String deviceId) async {
-    final url = Uri.parse(ApiEndpoints.getSchedule(deviceId));
-    final response = await http.get(url);
-    if (response.statusCode == 200) return jsonDecode(response.body);
-    return {"times": []};
+  Future<Map<String, dynamic>> getSchedule(String deviceId) async {
+    try {
+      final url = Uri.parse(
+        "${ApiEndpoints.baseUrl}/api/get-schedule?id=$deviceId",
+      );
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+
+        Map<String, dynamic> rawData =
+            (decoded is Map && decoded.containsKey('data'))
+            ? decoded['data']
+            : decoded;
+
+        if (rawData.containsKey('times') && rawData['times'] is String) {
+          rawData['times'] = jsonDecode(rawData['times']);
+        }
+
+        return rawData;
+      }
+      return {"times": []};
+    } catch (e) {
+      debugPrint("❌ API Error Fetch Schedule: $e");
+      return {"times": []};
+    }
   }
 
   Future<void> updateSchedule(

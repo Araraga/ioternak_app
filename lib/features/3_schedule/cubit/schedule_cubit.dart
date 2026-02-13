@@ -15,37 +15,29 @@ class ScheduleCubit extends Cubit<ScheduleState> {
        super(ScheduleInitial());
 
   Future<void> fetchSchedule() async {
-    // Cek 1: Jangan jalan jika cubit sudah ditutup
     if (isClosed) return;
-
     try {
       emit(ScheduleLoading());
-
       final pakanId = _storageService.getPakanId();
 
       if (pakanId == null || pakanId.isEmpty) {
-        if (!isClosed)
-          emit(const ScheduleError('ID Perangkat Pakan tidak ditemukan.'));
+        emit(const ScheduleError('ID Perangkat Pakan tidak ditemukan.'));
         return;
       }
 
+      // Ambil data terbaru dari Database via API
       final data = await _apiService.getSchedule(pakanId);
 
-      // KONVERSI DATA
-      // Pastikan handling error jika format data tidak sesuai
-      final List<String> schedules = (data['times'] as List<dynamic>)
-          .map((time) => time.toString())
-          .toList();
+      final List<String> schedules =
+          (data['times'] as List<dynamic>?)
+              ?.map((time) => time.toString())
+              .toList() ??
+          [];
 
-      // Cek 2: Cek lagi setelah proses async (await) selesai
-      if (!isClosed) {
-        emit(ScheduleLoaded(schedules));
-      }
+      if (!isClosed) emit(ScheduleLoaded(schedules));
     } catch (e) {
-      // Cek 3: Cek sebelum emit error
-      if (!isClosed) {
-        emit(ScheduleError(e.toString()));
-      }
+      if (!isClosed)
+        emit(ScheduleError("Gagal mengambil data dari server: $e"));
     }
   }
 

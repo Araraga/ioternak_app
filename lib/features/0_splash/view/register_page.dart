@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart'; // Akses ke ApiService
 import 'package:flutter/services.dart'; // Untuk format input nomor HP
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/api_service.dart';
-import 'verification_page.dart'; // Pastikan file ini ada (halaman input OTP)
+import 'verification_page.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -15,7 +15,6 @@ class RegisterPage extends StatefulWidget {
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
 
-  // Controller Input Data
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
 
@@ -28,24 +27,18 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
-  // --- LOGIKA UTAMA: TOMBOL DAFTAR ---
   void _handleDaftarButton() async {
-    // 1. Cek validitas form UI
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
       final api = context.read<ApiService>();
-
-      // 2. Request OTP ke Backend
-      // Jika nomor sudah terdaftar, ApiService akan melempar Exception error
       final isSent = await api.requestOtp(_phoneController.text.trim());
 
       if (isSent) {
         if (!mounted) return;
 
-        // Tampilkan pesan sukses
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Kode OTP berhasil dikirim ke WhatsApp!"),
@@ -54,8 +47,6 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
         );
 
-        // 3. Pindah ke Halaman Verifikasi (Hanya jika sukses kirim OTP)
-        // Kita bawa data Nama & HP untuk disimpan nanti setelah verifikasi OTP selesai
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -68,16 +59,12 @@ class _RegisterPageState extends State<RegisterPage> {
       }
     } catch (e) {
       if (!mounted) return;
-
-      // Bersihkan pesan error dari teks "Exception:" agar lebih rapi
       String errorMessage = e.toString().replaceAll("Exception:", "").trim();
-
-      // Tampilkan Error (Misal: "Nomor ini sudah terdaftar")
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(errorMessage),
           backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4), // Tampil agak lama biar terbaca
+          duration: const Duration(seconds: 4),
         ),
       );
     } finally {
@@ -89,7 +76,7 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor:
-          AppColors.background, // Pastikan warna ini ada di constants Anda
+          AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -103,11 +90,10 @@ class _RegisterPageState extends State<RegisterPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // --- LOGO APLIKASI ---
                 SizedBox(
                   height: 100,
                   child: Image.asset(
-                    'assets/images/logo.png',
+                    'assets/images/icon.png',
                     fit: BoxFit.contain,
                     errorBuilder: (ctx, err, stack) => const Icon(
                       Icons.image_not_supported,
@@ -119,7 +105,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
                 const SizedBox(height: 24),
 
-                // --- HEADER TEKS ---
                 const Text(
                   "Buat Akun Baru",
                   textAlign: TextAlign.center,
@@ -137,11 +122,10 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 const SizedBox(height: 40),
 
-                // --- INPUT NAMA ---
                 TextFormField(
                   controller: _nameController,
                   textCapitalization:
-                      TextCapitalization.words, // Kapital tiap kata
+                      TextCapitalization.words,
                   decoration: InputDecoration(
                     labelText: "Nama Lengkap",
                     prefixIcon: const Icon(Icons.person_outline),
@@ -153,13 +137,12 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 const SizedBox(height: 20),
 
-                // --- INPUT NOMOR HP ---
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,
-                  ], // Hanya angka
+                  ],
                   decoration: InputDecoration(
                     labelText: "Nomor WhatsApp",
                     hintText: "Contoh: 08123456789",
@@ -179,7 +162,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
                 const SizedBox(height: 40),
 
-                // --- TOMBOL LANJUT ---
                 ElevatedButton(
                   onPressed: _isLoading ? null : _handleDaftarButton,
                   style: ElevatedButton.styleFrom(
@@ -203,7 +185,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
                 const SizedBox(height: 20),
 
-                // --- LINK MASUK (LOGIN) ---
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -213,7 +194,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                     GestureDetector(
                       onTap: () =>
-                          Navigator.pop(context), // Kembali ke Login Page
+                          Navigator.pop(context),
                       child: const Text(
                         "Masuk",
                         style: TextStyle(

@@ -16,7 +16,6 @@ class SensorDataCubit extends Cubit<SensorDataState> {
   }) : _apiService = apiService,
        _storageService = storageService,
        super(SensorDataInitial()) {
-    // Auto-refresh setiap 5 detik
     _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (!isClosed && state is! SensorDataLoading) {
         fetchSensorData();
@@ -52,13 +51,11 @@ class SensorDataCubit extends Cubit<SensorDataState> {
         return;
       }
 
-      // Ambil data yang sudah diolah jadi rata-rata harian (Max 7 item)
       final processedData = await _apiService.getSensorData(sensorId);
 
       if (isClosed) return;
 
       if (processedData is List && processedData.isNotEmpty) {
-        // Langsung emit karena sudah matang
         emit(SensorDataLoaded(processedData));
       } else {
         emit(const SensorDataLoaded([]));

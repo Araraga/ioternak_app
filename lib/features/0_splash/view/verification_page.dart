@@ -32,7 +32,6 @@ class _VerificationPageState extends State<VerificationPage> {
     super.dispose();
   }
 
-  // Fungsi Submit Akhir
   void _verifyOtp(String otpCode) async {
     if (otpCode.length < 6) return;
 
@@ -42,7 +41,6 @@ class _VerificationPageState extends State<VerificationPage> {
       final api = context.read<ApiService>();
       final storage = context.read<StorageService>();
 
-      // Panggil API Register (Nama, HP, OTP)
       final result = await api.registerUser(
         fullName: widget.fullName,
         phone: widget.phone,
@@ -51,13 +49,9 @@ class _VerificationPageState extends State<VerificationPage> {
 
       final userIdDB = result['user']['user_id'].toString();
 
-      // Simpan Sesi
       await storage.saveUserProfile(widget.fullName, widget.phone);
       await storage.saveUserIdFromDB(userIdDB);
-
       if (!mounted) return;
-
-      // Sukses -> Masuk Dashboard
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const HomePage()),
         (route) => false,
@@ -71,7 +65,6 @@ class _VerificationPageState extends State<VerificationPage> {
           backgroundColor: Colors.red,
         ),
       );
-      // Reset input jika gagal
       _otpController.clear();
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -80,7 +73,6 @@ class _VerificationPageState extends State<VerificationPage> {
 
   @override
   Widget build(BuildContext context) {
-    // --- TEMA PINPUT (SMART AUTH STYLE) ---
     final defaultPinTheme = PinTheme(
       width: 56,
       height: 56,
@@ -91,14 +83,14 @@ class _VerificationPageState extends State<VerificationPage> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(19),
         border: Border.all(color: Colors.grey.shade300),
-        color: Colors.grey.shade100, // Background kotak soft
+        color: Colors.grey.shade100,
       ),
     );
 
     final focusedPinTheme = defaultPinTheme.copyDecorationWith(
       border: Border.all(
         color: AppColors.primary,
-      ), // Warna fokus (Hijau/Biru App)
+      ),
       borderRadius: BorderRadius.circular(8),
       color: Colors.white,
     );
@@ -125,7 +117,6 @@ class _VerificationPageState extends State<VerificationPage> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const SizedBox(height: 20),
-            // Ilustrasi atau Icon Gembok (Opsional)
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -152,7 +143,6 @@ class _VerificationPageState extends State<VerificationPage> {
             ),
             const SizedBox(height: 40),
 
-            // --- WIDGET PINPUT UTAMA ---
             Pinput(
               length: 6,
               controller: _otpController,
@@ -160,10 +150,8 @@ class _VerificationPageState extends State<VerificationPage> {
               defaultPinTheme: defaultPinTheme,
               focusedPinTheme: focusedPinTheme,
               submittedPinTheme: submittedPinTheme,
-              // Animasi cursor ala Smart Auth
               showCursor: true,
               onCompleted: (pin) {
-                // Otomatis submit saat user selesai ketik 6 angka
                 _verifyOtp(pin);
               },
             ),
@@ -195,7 +183,6 @@ class _VerificationPageState extends State<VerificationPage> {
             const SizedBox(height: 20),
             TextButton(
               onPressed: () {
-                // Logika kirim ulang (bisa panggil api.requestOtp lagi)
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text(

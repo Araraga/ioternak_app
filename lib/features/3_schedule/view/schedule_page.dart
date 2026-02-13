@@ -234,10 +234,12 @@ class _ScheduleViewState extends State<ScheduleView> {
       },
       child: BlocBuilder<ScheduleCubit, ScheduleState>(
         builder: (context, state) {
-          if (state is ScheduleLoaded && !_isDataLoaded) {
+          if (state is ScheduleLoaded) {
             _currentSchedules = List<String>.from(state.schedules);
             _currentSchedules.sort();
-            _isDataLoaded = true;
+          } else if (state is ScheduleUpdateSuccess) {
+            _currentSchedules = List<String>.from(state.newSchedules);
+            _currentSchedules.sort();
           }
 
           return Scaffold(

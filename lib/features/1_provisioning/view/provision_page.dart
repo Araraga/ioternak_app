@@ -191,7 +191,7 @@ class _ProvisionPageState extends State<ProvisionPage> {
                 ),
                 const SizedBox(height: 24),
                 const Text(
-                  'Klaim Kepemilikan',
+                  'Klaim Perangkat',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,

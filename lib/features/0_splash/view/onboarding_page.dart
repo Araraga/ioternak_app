@@ -15,13 +15,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  // --- [PERUBAHAN] Ganti Icon dengan Path Gambar ---
   final List<Map<String, dynamic>> _onboardingData = [
     {
       "title": "Ekosistem Alat Pintar\nKandang Ternak",
       "desc":
           "Hubungkan berbagai perangkat canggih mulai dari sensor lingkungan hingga pakan otomatis dalam satu aplikasi yang terintegrasi.",
-      "image": "assets/images/slide1.png", // Ganti Icon jadi Image
+      "image": "assets/images/slide1.png",
     },
     {
       "title": "Monitor dan Kontrol\nKandang Secara Realtime",
@@ -66,14 +65,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // --- [PERUBAHAN] Tampilkan Gambar ---
-                        // Tidak perlu Container bulat lagi jika gambarnya ilustrasi penuh
                         SizedBox(
-                          height: 250, // Atur tinggi gambar agar proporsional
+                          height: 250,
                           child: Image.asset(
                             data['image'],
                             fit: BoxFit.contain,
-                            // Placeholder jika gambar belum ada
                             errorBuilder: (ctx, err, stack) => Container(
                               height: 150,
                               width: 150,
@@ -118,13 +114,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
               ),
             ),
 
-            // Bagian Bawah (Dots & Tombol)
             Padding(
               padding: const EdgeInsets.fromLTRB(32, 0, 32, 48),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Indikator Dots
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(
@@ -146,7 +140,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
                   const SizedBox(height: 32),
 
-                  // Tombol Mulai (Hanya di slide terakhir)
                   if (_currentPage == _onboardingData.length - 1)
                     SizedBox(
                       width: double.infinity,
@@ -170,7 +163,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       ),
                     )
                   else
-                    const SizedBox(height: 48), // Placeholder jarak
+                    const SizedBox(height: 48),
                 ],
               ),
             ),
