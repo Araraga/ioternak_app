@@ -146,7 +146,7 @@ class AmmoniaChart extends StatelessWidget {
                 ),
                 borderData: FlBorderData(show: false),
                 minX: 0,
-                maxX: (sensorData.length - 1).toDouble(),
+                maxX: sensorData.length > 1 ? (sensorData.length - 1).toDouble() : 1.0,
                 minY: 0,
                 maxY: maxY,
                 lineBarsData: [

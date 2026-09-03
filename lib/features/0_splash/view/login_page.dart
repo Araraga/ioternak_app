@@ -26,6 +26,7 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final api = context.read<ApiService>();
+      final storage = context.read<StorageService>();
       final result = await api.loginUser(_phoneController.text.trim());
 
       final userData = result['user'];
@@ -33,7 +34,6 @@ class _LoginPageState extends State<LoginPage> {
       final String phone = userData['phone_number'];
       final String userIdDB = userData['user_id'].toString();
 
-      final storage = context.read<StorageService>();
       await storage.saveUserProfile(name, phone);
       await storage.saveUserIdFromDB(userIdDB);
 
@@ -46,6 +46,7 @@ class _LoginPageState extends State<LoginPage> {
         (route) => false,
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Gagal: ${e.toString().replaceAll("Exception:", "")}"),

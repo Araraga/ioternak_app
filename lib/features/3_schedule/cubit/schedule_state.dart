@@ -11,6 +11,7 @@ class ScheduleInitial extends ScheduleState {}
 
 class ScheduleLoading extends ScheduleState {}
 
+/// Schedules are stored as "HH:mm|portion" strings, e.g. "08:00|sedikit"
 class ScheduleLoaded extends ScheduleState {
   final List<String> schedules;
 
@@ -33,6 +34,9 @@ class ScheduleUpdateSuccess extends ScheduleState {
   final List<String> newSchedules;
 
   const ScheduleUpdateSuccess(this.newSchedules);
+
+  // Backwards compatibility alias
+  List<String> get schedules => newSchedules;
 
   @override
   List<Object> get props => [newSchedules];

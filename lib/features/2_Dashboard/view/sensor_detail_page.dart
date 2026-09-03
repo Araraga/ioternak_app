@@ -148,7 +148,7 @@ class _SensorDetailViewState extends State<SensorDetailView> {
 
       appBar: AppBar(
         title: const Text(
-          'Detail Sensor',
+          'IoPeka',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.transparent,

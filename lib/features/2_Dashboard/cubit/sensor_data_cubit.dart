@@ -46,8 +46,9 @@ class SensorDataCubit extends Cubit<SensorDataState> {
 
       final sensorId = _storageService.getSensorId();
       if (sensorId == null || sensorId.isEmpty) {
-        if (!isClosed)
+        if (!isClosed) {
           emit(const SensorDataError('ID Sensor tidak ditemukan.'));
+        }
         return;
       }
 

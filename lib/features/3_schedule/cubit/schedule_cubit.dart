@@ -10,10 +10,23 @@ class ScheduleCubit extends Cubit<ScheduleState> {
   ScheduleCubit({
     required ApiService apiService,
     required StorageService storageService,
-  }) : _apiService = apiService,
-       _storageService = storageService,
-       super(ScheduleInitial());
+  })  : _apiService = apiService,
+        _storageService = storageService,
+        super(ScheduleInitial());
 
+  // ── Rotations mapping ───────────────────────────────────────────────────────
+  static int rotationsFor(String portion) {
+    switch (portion) {
+      case 'sedikit':
+        return 3;
+      case 'banyak':
+        return 10;
+      default:
+        return 6; // sedang
+    }
+  }
+
+  // ── Fetch ───────────────────────────────────────────────────────────────────
   Future<void> fetchSchedule() async {
     if (isClosed) return;
     try {
@@ -25,29 +38,57 @@ class ScheduleCubit extends Cubit<ScheduleState> {
         return;
       }
 
-      // Ambil data terbaru dari Database via API
       final data = await _apiService.getSchedule(pakanId);
 
-      final List<String> schedules =
-          (data['times'] as List<dynamic>?)
-              ?.map((time) => time.toString())
-              .toList() ??
-          [];
+      // Parse new per-schedule format — backward-compatible with old format
+      final List<String> schedules = _parseTimes(data['times']);
 
-      if (!isClosed) emit(ScheduleLoaded(schedules));
+      if (!isClosed) {
+        emit(ScheduleLoaded(schedules));
+      }
     } catch (e) {
-      if (!isClosed)
+      if (!isClosed) {
         emit(ScheduleError("Gagal mengambil data dari server: $e"));
+      }
     }
   }
 
+  /// Parse `times` dari API.
+  /// api_service.getSchedule() sudah menormalisasi ke format "HH:mm|portion".
+  /// Fungsi ini sebagai fallback untuk keamanan.
+  List<String> _parseTimes(dynamic rawTimes) {
+    if (rawTimes == null || rawTimes is! List) return [];
+
+    final result = <String>[];
+    for (final entry in rawTimes) {
+      if (entry == null) continue;
+      if (entry is Map) {
+        // Fallback: api_service belum normalisasi (seharusnya tidak terjadi)
+        final time    = (entry['time']    ?? '').toString().trim();
+        final portion = (entry['portion'] ?? 'sedang').toString().trim();
+        if (time.contains(':')) result.add('$time|$portion');
+      } else {
+        final s = entry.toString().trim();
+        if (s.isEmpty) continue;
+        if (s.contains('|')) {
+          result.add(s);
+        } else if (s.contains(':')) {
+          result.add('$s|sedang');
+        }
+        // Abaikan format lain (mis. Map.toString() yang salah)
+      }
+    }
+    return result;
+  }
+
+  // ── Update ──────────────────────────────────────────────────────────────────
+  /// [newSchedules] — list of "HH:mm|portion" strings
   Future<void> updateSchedule(List<String> newSchedules) async {
     if (isClosed) return;
 
     final currentState = state;
     List<String> currentData = [];
 
-    // Ambil data lama buat backup/optimistic UI
     if (currentState is ScheduleLoaded) {
       currentData = currentState.schedules;
     } else if (currentState is ScheduleUpdateSuccess) {
@@ -59,21 +100,28 @@ class ScheduleCubit extends Cubit<ScheduleState> {
 
       final pakanId = _storageService.getPakanId();
       if (pakanId == null || pakanId.isEmpty) {
-        if (!isClosed)
-          emit(const ScheduleError('ID Perangkat Pakan tidak ditemukan.'));
+        if (!isClosed) emit(const ScheduleError('ID Perangkat Pakan tidak ditemukan.'));
         return;
       }
 
-      final Map<String, dynamic> scheduleData = {'times': newSchedules};
+      // Build per-schedule payload for server & MQTT
+      final timesPayload = newSchedules.map((s) {
+        final parts = s.split('|');
+        final time = parts[0];
+        final portion = parts.length > 1 ? parts[1] : 'sedang';
+        return {
+          'time': time,
+          'portion': portion,
+          'rotations': rotationsFor(portion),
+        };
+      }).toList();
 
-      await _apiService.updateSchedule(pakanId, scheduleData);
+      await _apiService.updateSchedule(pakanId, {'times': timesPayload});
 
-      // Cek 4: Cek setelah await update selesai
       if (!isClosed) {
         emit(ScheduleUpdateSuccess(newSchedules));
       }
     } catch (e) {
-      // Cek 5: Cek error
       if (!isClosed) {
         emit(ScheduleError(e.toString()));
       }
