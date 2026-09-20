@@ -156,7 +156,7 @@ class _SensorDetailViewState extends State<SensorDetailView> {
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.black),
         actions: [
-          // 1. TOMBOL REFRESH DIHAPUS (Sesuai Permintaan)
+          // 1. TOMBOL REFRESH DIHAPUS
 
           // 2. TOMBOL DELETE
           IconButton(

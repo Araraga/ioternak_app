@@ -12,9 +12,10 @@ class BarnLoading extends BarnState {}
 
 class BarnLoaded extends BarnState {
   final List<dynamic> barns;
-  const BarnLoaded({required this.barns});
+  final Map<String, dynamic>? dashboardSummary;
+  const BarnLoaded({required this.barns, this.dashboardSummary});
   @override
-  List<Object?> get props => [barns];
+  List<Object?> get props => [barns, dashboardSummary];
 }
 
 class BarnError extends BarnState {

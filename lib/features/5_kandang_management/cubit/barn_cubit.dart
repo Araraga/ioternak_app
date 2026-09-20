@@ -20,6 +20,15 @@ class BarnCubit extends Cubit<BarnState> {
         emit(const BarnLoaded(barns: []));
         return;
       }
+
+      final dashboard = await _api.getBarnsDashboard(userId);
+      if (dashboard.isNotEmpty && dashboard['barns'] != null) {
+        final barns = dashboard['barns'] as List? ?? [];
+        final summary = dashboard['summary'] as Map<String, dynamic>?;
+        emit(BarnLoaded(barns: barns, dashboardSummary: summary));
+        return;
+      }
+
       final barns = await _api.getBarns(userId);
       emit(BarnLoaded(barns: barns));
     } catch (e) {
@@ -32,6 +41,8 @@ class BarnCubit extends Cubit<BarnState> {
     required String animalType,
     int? capacity,
     String? location,
+    double? latitude,
+    double? longitude,
     String? description,
     double prefTempMin = 29.0,
     double prefTempMax = 33.0,
@@ -53,6 +64,8 @@ class BarnCubit extends Cubit<BarnState> {
         'animal_type': animalType,
         'capacity': capacity,
         'location': location,
+        'latitude': latitude,
+        'longitude': longitude,
         'description': description,
         'preferred_temp_min': prefTempMin,
         'preferred_temp_max': prefTempMax,
@@ -79,6 +92,20 @@ class BarnCubit extends Cubit<BarnState> {
       await fetchBarns();
     } catch (e) {
       emit(BarnError('Gagal mengupdate kandang: $e'));
+    }
+  }
+
+  Future<void> deleteBarn(String barnId) async {
+    try {
+      emit(BarnLoading());
+      final ok = await _api.deleteBarn(barnId);
+      if (ok) {
+        await fetchBarns();
+      } else {
+        emit(const BarnError('Gagal menghapus kandang'));
+      }
+    } catch (e) {
+      emit(BarnError('Gagal menghapus kandang: $e'));
     }
   }
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:fl_chart/fl_chart.dart';
+import 'widgets/home_summary_barn_card.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/storage_service.dart';
 import '../../../core/services/api_service.dart';
@@ -15,16 +15,13 @@ import '../cubit/sensor_data_cubit.dart';
 import '../cubit/sensor_data_state.dart';
 import '../view/notifications_page.dart';
 import '../view/sensor_detail_page.dart';
-import '../../5_kandang_management/view/kandang_management_page.dart';
 import '../../6_weather/view/weather_detail_page.dart';
-import '../../../core/utils/navigation_tab_switcher.dart';
 import '../../0_splash/view/onboarding_page.dart';
 import '../../1_provisioning/view/provision_page.dart';
 import '../../3_schedule/view/schedule_page.dart';
 import '../../3_schedule/cubit/schedule_cubit.dart';
 import '../../3_schedule/cubit/schedule_state.dart';
 import '../../5_kandang_management/cubit/barn_cubit.dart';
-import '../../5_kandang_management/cubit/barn_state.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -137,6 +134,29 @@ class _HomeViewState extends State<HomeView> {
     return 'Berawan';
   }
 
+  String _resolveCityName(String rawLocation, String userCity, String userProvince) {
+    if (userCity.trim().isNotEmpty) return userCity.trim();
+
+    if (rawLocation.isNotEmpty) {
+      final parts = rawLocation.split(',').map((p) => p.trim()).toList();
+      for (final part in parts) {
+        final lower = part.toLowerCase();
+        if (lower.startsWith('kota ') || lower.startsWith('kabupaten ') || lower.startsWith('kab. ')) {
+          return part;
+        }
+      }
+      if (parts.length >= 3 && parts[0].toLowerCase().startsWith('kecamatan')) {
+        return parts[1];
+      }
+      if (parts.isNotEmpty) {
+        return parts[0];
+      }
+    }
+
+    if (userProvince.trim().isNotEmpty) return userProvince.trim();
+    return 'Indonesia';
+  }
+
   /// Pilih PNG asset sesuai kondisi cuaca
   String _weatherAsset(int code) {
     if (code == 0) return 'assets/icon/sunny.png';
@@ -153,13 +173,6 @@ class _HomeViewState extends State<HomeView> {
     if (t == null) return AppColors.textSecondary;
     if (t > 35) return AppColors.statusDanger;
     if (t > 32) return AppColors.statusWarning;
-    return AppColors.statusGood;
-  }
-
-  Color _gasColor(double? g) {
-    if (g == null) return AppColors.textSecondary;
-    if (g > 25) return AppColors.statusDanger;
-    if (g > 15) return AppColors.statusWarning;
     return AppColors.statusGood;
   }
 
@@ -288,9 +301,12 @@ class _HomeViewState extends State<HomeView> {
         }
 
         final storage = context.read<StorageService>();
-        final city = storage.getUserCity() ?? '';
-        final province = storage.getUserProvince() ?? '';
-        final locationText = city.isNotEmpty ? city : province;
+        final userCity = storage.getUserCity() ?? '';
+        final userProvince = storage.getUserProvince() ?? '';
+        final rawLocation = state.locationName.isNotEmpty
+            ? state.locationName
+            : (storage.getWeatherLocationName() ?? '');
+        final cityName = _resolveCityName(rawLocation, userCity, userProvince);
 
         final temp = _toDouble(state.current['temperature']) ?? 0.0;
         final weatherCode =
@@ -318,10 +334,10 @@ class _HomeViewState extends State<HomeView> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.55),
+              color: Colors.white.withValues(alpha: 0.55),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white.withValues(alpha: 0.7),
                 width: 1.2,
               ),
             ),
@@ -345,20 +361,39 @@ class _HomeViewState extends State<HomeView> {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      if (locationText.isNotEmpty)
-                        Text(
-                          locationText,
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.location_on_rounded,
+                            size: 13,
+                            color: AppColors.primary,
                           ),
-                        ),
+                          const SizedBox(width: 3),
+                          Flexible(
+                            child: Text(
+                              cityName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
                       Text(
                         desc,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.inter(
                           fontSize: 12,
+                          fontWeight: FontWeight.w500,
                           color: AppColors.textSecondary,
                         ),
                       ),
@@ -405,10 +440,10 @@ class _HomeViewState extends State<HomeView> {
       height: 76,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.5),
+        color: Colors.white.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.white.withOpacity(0.7),
+          color: Colors.white.withValues(alpha: 0.7),
           width: 1.2,
         ),
       ),
@@ -438,271 +473,10 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  /// ── Ringkasan Kandang: combined donut (pakan) + bar (keuangan) ──
+  /// ── Ringkasan Kandang Modern (Concentric Multi-Ring Radial) ──
   Widget _buildSummaryCard() {
-    final days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-    final financeData = [45.0, 72.0, 38.0, 90.0, 55.0, 68.0, 82.0];
-    final double maxFinance = financeData.reduce((a, b) => a > b ? a : b);
-
-    return BlocBuilder<ScheduleCubit, ScheduleState>(
-      builder: (context, schedState) {
-        // Hitung pakan hari ini dari jadwal yang ada
-        List<String> schedules = [];
-        if (schedState is ScheduleLoaded) schedules = schedState.schedules;
-        final int feedCount = schedules.length;
-        
-        double todayFeedKg = 0;
-        List<double> feedParts = [];
-        for (var sched in schedules) {
-          String portion = 'sedang';
-          if (sched.contains('|')) {
-            final split = sched.split('|');
-            if (split.length > 1) portion = split[1];
-          }
-          double kg = 2.5;
-          if (portion == 'sedikit') kg = 2.5 * 0.6;
-          if (portion == 'banyak') kg = 2.5 * 1.6;
-          todayFeedKg += kg;
-          feedParts.add(kg);
-        }
-        
-        if (feedCount == 0) {
-          feedParts = [1.0];
-        }
-        
-        final List<Color> feedColors = [
-          AppColors.statusWarning,
-          const Color(0xFFFF7043),
-          const Color(0xFFFFB300),
-          const Color(0xFFFFC107),
-          const Color(0xFFFF8F00),
-        ];
-
-        return GestureDetector(
-          onTap: () {
-            // Switch ke tab Kandang (index 1) agar navbar tetap muncul.
-            // Dicari lewat NavigationTabSwitcher callback yang diset dari main_navigation_page.
-            if (NavigationTabSwitcher.switchTab != null) {
-              NavigationTabSwitcher.switchTab!(1);
-            } else {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => const KandangManagementPage()),
-              );
-            }
-          },
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha(10),
-                  blurRadius: 24,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Header ──
-                Row(
-                  children: [
-                    Text(
-                      'Ringkasan Kandang',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Text(
-                            '7 hari ini',
-                            style: GoogleFonts.inter(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(Icons.chevron_right_rounded,
-                              color: AppColors.primary, size: 14),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 14),
-
-                // ── TOP ROW: Donut kiri + Stats kanan ──
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Donut chart pakan
-                    SizedBox(
-                      width: 80,
-                      height: 80,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          PieChart(
-                            PieChartData(
-                              sectionsSpace: 2,
-                              centerSpaceRadius: 24,
-                              startDegreeOffset: -90,
-                              sections: feedCount > 0
-                                  ? List.generate(
-                                      feedParts.length,
-                                      (i) => PieChartSectionData(
-                                        value: feedParts[i],
-                                        color: feedColors[i % feedColors.length],
-                                        radius: 14,
-                                        showTitle: false,
-                                      ),
-                                    )
-                                  : [
-                                      PieChartSectionData(
-                                        value: 1,
-                                        color: Colors.grey.shade200,
-                                        radius: 14,
-                                        showTitle: false,
-                                      ),
-                                    ],
-                            ),
-                          ),
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                '${todayFeedKg.toStringAsFixed(0)}',
-                                style: GoogleFonts.inter(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                              Text(
-                                'kg',
-                                style: GoogleFonts.inter(
-                                  fontSize: 9,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(width: 14),
-
-                    // Stats info pakan
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          BlocBuilder<BarnCubit, BarnState>(
-                            builder: (context, barnState) {
-                              int totalAyam = 0;
-                              double stockGudang = 0;
-                              if (barnState is BarnLoaded && barnState.barns.isNotEmpty) {
-                                final barnId = barnState.barns.first['id'].toString();
-                                totalAyam = int.tryParse(barnState.barns.first['capacity']?.toString() ?? '0') ?? 0;
-                                stockGudang = context.read<BarnCubit>().getFeedStockGudang(barnId);
-                              }
-                              return Column(
-                                children: [
-                                  _statRow(
-                                    label: 'Total Ayam Saat Ini',
-                                    value: '$totalAyam ekor',
-                                    color: AppColors.primary,
-                                    icon: Icons.pets_rounded,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  _statRow(
-                                    label: 'Stok Pakan',
-                                    value: '${stockGudang.toStringAsFixed(1)} kg',
-                                    color: AppColors.statusWarning,
-                                    icon: Icons.warehouse_rounded,
-                                  ),
-                                  const SizedBox(height: 8),
-                                ],
-                              );
-                            },
-                          ),
-                          _statRow(
-                            label: 'Keuangan Hari Ini',
-                            value: 'Rp ${(financeData.last * 1000).toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}',
-                            color: AppColors.statusInfo,
-                            icon: Icons.account_balance_wallet_rounded,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
-              ],
-            ),
-          ),
-        );
-      },
-    );
+    return const HomeSummaryBarnCard();
   }
-
-  Widget _statRow({
-    required String label,
-    required String value,
-    required Color color,
-    required IconData icon,
-  }) {
-    return Row(
-      children: [
-        Container(
-          width: 22,
-          height: 22,
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Icon(icon, size: 12, color: color),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ),
-        Text(
-          value,
-          style: GoogleFonts.inter(
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
-          ),
-        ),
-      ],
-    );
-  }
-
 
   /// ── Perangkat Section Header ──
   Widget _buildDevicesHeader(BuildContext context, DashboardLoaded state) {

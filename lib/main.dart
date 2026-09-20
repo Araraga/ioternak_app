@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 // Import Services
 import 'core/services/api_service.dart';
 import 'core/services/storage_service.dart';
+import 'core/services/local_notification_service.dart';
 
 // Import App View
 import 'app_view.dart';
@@ -21,6 +22,9 @@ void main() async {
 
   // 1. Inisialisasi Storage Service sebelum aplikasi jalan
   await storageService.init();
+
+  // 2. Inisialisasi Local Notification Service untuk pengingat jadwal tugas
+  await LocalNotificationService.instance.initialize();
 
   Widget startPage;
 

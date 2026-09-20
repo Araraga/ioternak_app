@@ -16,13 +16,15 @@ class ScheduleCubit extends Cubit<ScheduleState> {
 
   // ── Rotations mapping ───────────────────────────────────────────────────────
   static int rotationsFor(String portion) {
-    switch (portion) {
+    switch (portion.toLowerCase()) {
       case 'sedikit':
-        return 3;
+      case 'kecil':
+        return 1;
       case 'banyak':
-        return 10;
+      case 'besar':
+        return 4;
       default:
-        return 6; // sedang
+        return 2; // sedang
     }
   }
 

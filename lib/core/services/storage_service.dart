@@ -15,6 +15,7 @@ class StorageService {
   static const String _kUserProvince = 'user_province';
   static const String _kLastWeatherLat = 'last_weather_lat';
   static const String _kLastWeatherLon = 'last_weather_lon';
+  static const String _kLastWeatherLocationName = 'last_weather_location_name';
   static const String _kActiveBarnId = 'active_barn_id';
   static const String _kNotificationCount = 'notification_count';
   static const String _kUserAddress = 'user_address';
@@ -176,10 +177,23 @@ class StorageService {
   // WEATHER LOCATION
   // =====================
 
-  Future<void> saveWeatherLocation(String lat, String lon) async {
+  Future<void> saveWeatherLocation(String lat, String lon, [String? locationName]) async {
     _checkInit();
     await _prefs!.setString(_kLastWeatherLat, lat);
     await _prefs!.setString(_kLastWeatherLon, lon);
+    if (locationName != null) {
+      await _prefs!.setString(_kLastWeatherLocationName, locationName);
+    }
+  }
+
+  Future<void> saveWeatherLocationName(String name) async {
+    _checkInit();
+    await _prefs!.setString(_kLastWeatherLocationName, name);
+  }
+
+  String? getWeatherLocationName() {
+    _checkInit();
+    return _prefs!.getString(_kLastWeatherLocationName);
   }
 
   String? getWeatherLat() {

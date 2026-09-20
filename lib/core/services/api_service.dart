@@ -385,6 +385,20 @@ class ApiService {
   // BARNS
   // =========================================================
 
+  Future<Map<String, dynamic>> getBarnsDashboard(String userId) async {
+    try {
+      final url = Uri.parse(ApiEndpoints.getBarnsDashboard(userId));
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return json['data'] ?? {};
+      }
+      return {};
+    } catch (e) {
+      return {};
+    }
+  }
+
   Future<List<dynamic>> getBarns(String userId) async {
     try {
       final url = Uri.parse(ApiEndpoints.getBarns(userId));
@@ -449,6 +463,16 @@ class ApiService {
       throw Exception(result['message'] ?? 'Gagal update kandang');
     } catch (e) {
       throw Exception('Error: $e');
+    }
+  }
+
+  Future<bool> deleteBarn(String barnId) async {
+    try {
+      final url = Uri.parse(ApiEndpoints.deleteBarn(barnId));
+      final response = await http.delete(url);
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
     }
   }
 
