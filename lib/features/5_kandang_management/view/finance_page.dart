@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/api_endpoints.dart';
+import '../../../core/widgets/universal_app_bar.dart';
 
 class FinancePage extends StatefulWidget {
   final int? barnId;
@@ -61,11 +62,14 @@ class _FinancePageState extends State<FinancePage> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text(title, style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18)),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: UniversalAppBar(
+        title: title,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: Colors.black),
+            onPressed: _loadData,
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
@@ -307,6 +311,36 @@ class _FinancePageState extends State<FinancePage> {
     return Column(children: items);
   }
 
+  String _formatCategory(dynamic cat) {
+    if (cat == null) return 'Lainnya';
+    final str = cat.toString().toLowerCase();
+    const map = {
+      'bird_sales': 'Penjualan Ayam',
+      'egg_sales': 'Penjualan Telur',
+      'culled_sales': 'Ayam Afkir',
+      'manure': 'Pupuk Kotoran',
+      'feed': 'Pakan',
+      'doc': 'Bibit DOC',
+      'medicine': 'Vaksin & Obat',
+      'labor': 'Tenaga Kerja',
+      'utilities': 'Listrik & Air',
+      'maintenance': 'Peralatan & Servis',
+      'other': 'Lainnya',
+      'penjualan_ayam': 'Penjualan Ayam',
+      'penjualan_telur': 'Penjualan Telur',
+      'pupuk_kotoran': 'Pupuk Kotoran',
+      'afkir': 'Ayam Afkir',
+      'bibit_doc': 'Bibit DOC',
+      'pakan': 'Pakan',
+      'vaksin_obat': 'Vaksin & Obat',
+      'tenaga_kerja': 'Tenaga Kerja',
+      'listrik_air': 'Listrik & Air',
+      'peralatan': 'Peralatan',
+      'pemeliharaan': 'Pemeliharaan',
+    };
+    return map[str] ?? str.replaceAll('_', ' ').toUpperCase();
+  }
+
   Widget _trxCard(Map<String, dynamic> data, bool isIncome) {
     final c = isIncome ? Colors.green : Colors.red;
     final amt = num.tryParse(data['total_amount']?.toString() ?? data['amount']?.toString() ?? '0') ?? 0;
@@ -339,7 +373,7 @@ class _FinancePageState extends State<FinancePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  type.toString().toUpperCase(),
+                  _formatCategory(type),
                   style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                 ),
                 if (notes != null && notes.toString().isNotEmpty) ...[
@@ -475,39 +509,69 @@ class _FinancePageState extends State<FinancePage> {
 
                             setModalState(() => isSaving = true);
                             final nav = Navigator.of(ctx);
+                            final sm = ScaffoldMessenger.of(context);
                             try {
                               final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+                              final http.Response res;
                               if (isIncome) {
-                                await http.post(
+                                res = await http.post(
                                   Uri.parse(ApiEndpoints.addIncome),
                                   headers: {'Content-Type': 'application/json'},
                                   body: jsonEncode({
                                     'barn_id': widget.barnId,
                                     'income_type': selectedCategory,
                                     'total_amount': amt,
+                                    'quantity': 1,
                                     'notes': noteCtrl.text.trim(),
                                     'income_date': today,
                                   }),
                                 );
                               } else {
-                                await http.post(
+                                res = await http.post(
                                   Uri.parse(ApiEndpoints.addExpense),
                                   headers: {'Content-Type': 'application/json'},
                                   body: jsonEncode({
                                     'barn_id': widget.barnId,
                                     'expense_category': selectedCategory,
                                     'total_amount': amt,
+                                    'quantity': 1,
                                     'notes': noteCtrl.text.trim(),
                                     'expense_date': today,
                                   }),
                                 );
                               }
-                              nav.pop();
-                              if (mounted) {
-                                _loadData();
+
+                              if (res.statusCode >= 200 && res.statusCode < 300) {
+                                nav.pop();
+                                sm.showSnackBar(
+                                  SnackBar(
+                                    content: Text(isIncome ? 'Pemasukan berhasil dicatat!' : 'Pengeluaran berhasil dicatat!'),
+                                    backgroundColor: const Color(0xFF2ECC71),
+                                  ),
+                                );
+                                if (mounted) {
+                                  _loadData();
+                                }
+                              } else {
+                                setModalState(() => isSaving = false);
+                                String errText = 'Gagal menyimpan transaksi (${res.statusCode})';
+                                try {
+                                  final errData = jsonDecode(res.body);
+                                  if (errData['message'] != null) {
+                                    errText = errData['message'];
+                                  } else if (errData['error'] != null) {
+                                    errText = errData['error'];
+                                  }
+                                } catch (_) {}
+                                sm.showSnackBar(
+                                  SnackBar(content: Text(errText), backgroundColor: Colors.red),
+                                );
                               }
-                            } catch (_) {
+                            } catch (e) {
                               setModalState(() => isSaving = false);
+                              sm.showSnackBar(
+                                SnackBar(content: Text('Terjadi kesalahan: $e'), backgroundColor: Colors.red),
+                              );
                             }
                           },
                     style: ElevatedButton.styleFrom(

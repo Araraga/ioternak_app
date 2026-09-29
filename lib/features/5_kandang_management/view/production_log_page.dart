@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/api_endpoints.dart';
+import '../../../core/widgets/universal_app_bar.dart';
 import '../models/batch_model.dart';
 
 class ProductionLogPage extends StatefulWidget {
@@ -73,9 +74,8 @@ class _ProductionLogPageState extends State<ProductionLogPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text('Log Produksi', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.primary, foregroundColor: Colors.white, elevation: 0,
+      appBar: const UniversalAppBar(
+        title: 'Log Produksi',
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),

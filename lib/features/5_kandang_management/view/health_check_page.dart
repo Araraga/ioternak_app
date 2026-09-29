@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/api_endpoints.dart';
+import '../../../core/widgets/universal_app_bar.dart';
 import '../models/batch_model.dart';
 
 class HealthCheckPage extends StatefulWidget {
@@ -60,9 +61,8 @@ class _HealthCheckPageState extends State<HealthCheckPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text('Health Check Harian', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.statusGood, foregroundColor: Colors.white, elevation: 0,
+      appBar: const UniversalAppBar(
+        title: 'Health Check Harian',
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),

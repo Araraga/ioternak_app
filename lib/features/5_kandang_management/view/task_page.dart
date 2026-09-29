@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/api_endpoints.dart';
 import '../../../core/services/local_notification_service.dart';
+import '../../../core/widgets/universal_app_bar.dart';
 
 class TaskPage extends StatefulWidget {
   final int barnId;
@@ -178,12 +179,8 @@ class _TaskPageState extends State<TaskPage> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text('Jadwal & Pengingat Kandang',
-            style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 17)),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: const UniversalAppBar(
+        title: 'Jadwal & Pengingat Kandang',
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))

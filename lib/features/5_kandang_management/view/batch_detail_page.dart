@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/api_endpoints.dart';
 import '../../../core/widgets/glass_container.dart';
+import '../../../core/widgets/universal_app_bar.dart';
 import '../models/batch_model.dart';
 import '../models/production_model.dart';
 import 'production_log_page.dart';
@@ -84,15 +85,30 @@ class _BatchDetailPageState extends State<BatchDetailPage> with SingleTickerProv
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: NestedScrollView(
-        headerSliverBuilder: (ctx, _) => [_buildSliverAppBar()],
-        body: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-            : TabBarView(
-                controller: _tabController,
-                children: [_buildOverviewTab(), _buildProductionTab(), _buildHealthTab()],
-              ),
+      appBar: UniversalAppBar(
+        title: widget.batch.batchName,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: Colors.black),
+            onPressed: _loadData,
+          ),
+        ],
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: AppColors.primary,
+          unselectedLabelColor: AppColors.textSecondary,
+          indicatorColor: AppColors.primary,
+          indicatorWeight: 3,
+          labelStyle: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
+          tabs: const [Tab(text: 'Ringkasan'), Tab(text: 'Produksi'), Tab(text: 'Kesehatan')],
+        ),
       ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+          : TabBarView(
+              controller: _tabController,
+              children: [_buildOverviewTab(), _buildProductionTab(), _buildHealthTab()],
+            ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showQuickActionSheet,
         backgroundColor: AppColors.primary,
@@ -102,51 +118,74 @@ class _BatchDetailPageState extends State<BatchDetailPage> with SingleTickerProv
     );
   }
 
-  SliverAppBar _buildSliverAppBar() {
-    final batch = widget.batch;
-    return SliverAppBar(
-      expandedHeight: 200, pinned: true, elevation: 0, backgroundColor: AppColors.primary,
-      leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white), onPressed: () => Navigator.pop(context)),
-      actions: [IconButton(icon: const Icon(Icons.refresh_rounded, color: Colors.white), onPressed: _loadData)],
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(colors: [AppColors.primary, Color(0xFF1ABC9C)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+  Widget _headerBadge(String text) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+    decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.12), borderRadius: BorderRadius.circular(12)),
+    child: Text(text, style: GoogleFonts.inter(color: AppColors.primaryDark, fontSize: 12, fontWeight: FontWeight.w600)),
+  );
+
+  Widget _buildBatchBannerHeader(BatchModel batch) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 50, 20, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Row(children: [
-                    _headerBadge(batch.birdType == 'layer' ? '🥚 Layer' : '🍗 Broiler'),
-                    const SizedBox(width: 8),
-                    _headerBadge(' Hari'),
-                  ]),
-                  const SizedBox(height: 8),
-                  Text(batch.batchName, style: GoogleFonts.inter(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-                  if (batch.breed != null) Text(batch.breed!, style: GoogleFonts.inter(color: Colors.white70, fontSize: 14)),
-                ],
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _headerBadge(batch.birdType == 'layer' ? '🥚 Ayam Petelur (Layer)' : '🍗 Ayam Pedaging (Broiler)'),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.statusGood.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'Hari ke-${batch.ageDays}',
+                  style: GoogleFonts.inter(
+                    color: AppColors.statusGood,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            batch.batchName,
+            style: GoogleFonts.inter(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
             ),
           ),
-        ),
-      ),
-      bottom: TabBar(
-        controller: _tabController, indicatorColor: Colors.white, indicatorWeight: 3, labelColor: Colors.white,
-        unselectedLabelColor: Colors.white60, labelStyle: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
-        tabs: const [Tab(text: 'Ringkasan'), Tab(text: 'Produksi'), Tab(text: 'Kesehatan')],
+          if (batch.breed != null && batch.breed!.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              'Ras/Breed: ${batch.breed}',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
-
-  Widget _headerBadge(String text) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-    decoration: BoxDecoration(color: Colors.white.withOpacity(0.25), borderRadius: BorderRadius.circular(12)),
-    child: Text(text, style: GoogleFonts.inter(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
-  );
 
   Widget _buildOverviewTab() {
     final batch = widget.batch;
@@ -155,7 +194,10 @@ class _BatchDetailPageState extends State<BatchDetailPage> with SingleTickerProv
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildPopulationCard(batch), const SizedBox(height: 12),
+          _buildBatchBannerHeader(batch),
+          const SizedBox(height: 12),
+          _buildPopulationCard(batch),
+          const SizedBox(height: 12),
           _buildBatchInfoCard(batch), const SizedBox(height: 12),
           _buildVaccinationStatusCard(), const SizedBox(height: 80),
         ],

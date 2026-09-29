@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/api_endpoints.dart';
+import '../../../core/widgets/universal_app_bar.dart';
 import '../models/batch_model.dart';
 
 class AddBatchPage extends StatefulWidget {
@@ -98,10 +99,8 @@ class AddBatchPage extends StatefulWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text(widget.existing != null ? "Edit Batch" : "Batch Baru",
-            style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.primary, foregroundColor: Colors.white, elevation: 0,
+      appBar: UniversalAppBar(
+        title: widget.existing != null ? "Edit Batch" : "Batch Baru",
       ),
       body: Form(
         key: _formKey,

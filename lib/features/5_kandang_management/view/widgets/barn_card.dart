@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../flock_management_page.dart';
 import '../task_page.dart';
+import 'manage_feed_dialog.dart';
 
 class BarnCard extends StatelessWidget {
   final Map<String, dynamic> barn;
@@ -233,7 +234,7 @@ class BarnCard extends StatelessWidget {
                     Expanded(
                       child: _actionBtn(
                         icon: Icons.pets_rounded,
-                        label: 'Flock & Siklus',
+                        label: 'Flock',
                         color: AppColors.primary,
                         onTap: () {
                           Navigator.push(
@@ -245,11 +246,26 @@ class BarnCard extends StatelessWidget {
                         },
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _actionBtn(
+                        icon: Icons.inventory_2_outlined,
+                        label: 'Stok Pakan',
+                        color: const Color(0xFF10B981),
+                        onTap: () {
+                          ManageFeedDialog.show(
+                            context,
+                            barnId: barnId.toString(),
+                            barnName: barnName,
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: _actionBtn(
                         icon: Icons.notifications_active_rounded,
-                        label: 'Jadwal & Notif',
+                        label: 'Jadwal',
                         color: const Color(0xFFF39C12),
                         onTap: () {
                           Navigator.push(

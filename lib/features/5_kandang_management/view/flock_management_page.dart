@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/api_endpoints.dart';
+import '../../../core/widgets/universal_app_bar.dart';
 import '../models/batch_model.dart';
 import 'add_batch_page.dart';
 import 'batch_detail_page.dart';
@@ -54,11 +55,8 @@ class _FlockManagementPageState extends State<FlockManagementPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text('Manajemen Flock & Batch', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
+      appBar: const UniversalAppBar(
+        title: 'Manajemen Flock & Batch',
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))

@@ -8,6 +8,7 @@ import '../../../../core/utils/navigation_tab_switcher.dart';
 import '../../../5_kandang_management/cubit/barn_cubit.dart';
 import '../../../5_kandang_management/cubit/barn_state.dart';
 import '../../../5_kandang_management/view/kandang_management_page.dart';
+import '../../../5_kandang_management/view/widgets/manage_feed_dialog.dart';
 import 'concentric_radial_chart.dart';
 
 class HomeSummaryBarnCard extends StatelessWidget {
@@ -221,6 +222,7 @@ class HomeSummaryBarnCard extends StatelessWidget {
             _buildCardHeader(totalBarns),
             const SizedBox(height: 16),
             _buildRingsAndStats(
+              context: context,
               occupancyProgress: occupancyProgress,
               survivalProgress: survivalProgress,
               feedProgress: feedProgress,
@@ -269,7 +271,7 @@ class HomeSummaryBarnCard extends StatelessWidget {
               ),
               const SizedBox(width: 5),
               Text(
-                '$totalBarns Unit Aktif',
+                totalBarns <= 1 ? '1 Kandang' : '$totalBarns Kandang',
                 style: GoogleFonts.inter(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
@@ -290,6 +292,7 @@ class HomeSummaryBarnCard extends StatelessWidget {
   }
 
   Widget _buildRingsAndStats({
+    required BuildContext context,
     required double occupancyProgress,
     required double survivalProgress,
     required double feedProgress,
@@ -333,8 +336,10 @@ class HomeSummaryBarnCard extends StatelessWidget {
               const SizedBox(height: 7),
               _buildMetricRow(
                 color: colorFeed,
-                title: 'Stok Pakan',
+                title: 'Stok Pakan (Atur)',
                 value: feedStockStr,
+                onTap: () => ManageFeedDialog.show(context),
+                showAction: true,
               ),
             ],
           ),
@@ -347,8 +352,10 @@ class HomeSummaryBarnCard extends StatelessWidget {
     required Color color,
     required String title,
     required String value,
+    VoidCallback? onTap,
+    bool showAction = false,
   }) {
-    return Row(
+    final row = Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Container(
@@ -385,7 +392,42 @@ class HomeSummaryBarnCard extends StatelessWidget {
             ],
           ),
         ),
+        if (showAction)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.edit_outlined, size: 10, color: color),
+                const SizedBox(width: 2),
+                Text(
+                  'Ubah',
+                  style: GoogleFonts.inter(
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          ),
       ],
     );
+
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: row,
+        ),
+      );
+    }
+    return row;
   }
 }

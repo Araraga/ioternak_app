@@ -579,7 +579,7 @@ class _HomeViewState extends State<HomeView> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '1 Perangkat',
+                        'Monitoring Suhu & Amonia',
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           color: AppColors.textSecondary,
@@ -681,7 +681,7 @@ class _HomeViewState extends State<HomeView> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '2 Perangkat',
+                        'Dispenser Pakan Otomatis',
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           color: AppColors.textSecondary,

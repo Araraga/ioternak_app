@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/api_endpoints.dart';
+import '../../../core/widgets/universal_app_bar.dart';
 import '../models/batch_model.dart';
 import '../models/production_model.dart';
 
@@ -116,10 +117,14 @@ class _VaccinationPageState extends State<VaccinationPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text('Jadwal Vaksinasi', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.statusInfo, foregroundColor: Colors.white, elevation: 0,
-        actions: [IconButton(icon: const Icon(Icons.refresh_rounded), onPressed: _load)],
+      appBar: UniversalAppBar(
+        title: 'Jadwal Vaksinasi',
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: Colors.black),
+            onPressed: _load,
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.statusInfo))
